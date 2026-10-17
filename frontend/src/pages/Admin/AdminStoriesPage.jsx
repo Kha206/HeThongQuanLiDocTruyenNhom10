@@ -159,6 +159,23 @@ const AdminStoriesPage = () => {
     }
   };
 
+  // Delete chapter inside story manage modal
+  const handleDeleteChapterInStory = async (chapterId, chapterNum) => {
+    if (!window.confirm(`Bạn có chắc chắn muốn xóa Chương #${chapterNum}? Hành động này sẽ xóa dữ liệu bình luận và tiến độ đọc liên quan!`)) {
+      return;
+    }
+    try {
+      const res = await api.delete(`/admin/chapters/${chapterId}`);
+      if (res.success || res.message) {
+        showSuccess(`Đã xóa Chương #${chapterNum} thành công.`);
+        setManagedChapters(prev => prev.filter(c => Number(c.id) !== Number(chapterId)));
+        fetchData();
+      }
+    } catch (err) {
+      showError(err.message || 'Lỗi khi xóa chương.');
+    }
+  };
+
   const openCreateModal = () => {
     setEditingStory(null);
     setFormData({
@@ -405,7 +422,7 @@ const AdminStoriesPage = () => {
                           src={story.cover_image}
                           alt={story.title}
                           className="w-10 h-14 object-cover rounded-md border border-[#2A2A38] flex-shrink-0"
-                          fallbackSrc="https://comicvine.gamespot.com/a/uploads/scale_medium/0/394/78670-5533-105342-1-amazing-fantasy.jpg"
+                          fallbackSrc="/placeholder-cover.svg"
                         />
                         <div>
                           <p className="font-bold text-white hover:text-[#ED1D24] transition-colors line-clamp-1">
@@ -610,6 +627,16 @@ const AdminStoriesPage = () => {
                         ) : (
                           <span>Khóa (VIP/Trả phí)</span>
                         )}
+                      </button>
+
+                      {/* Delete Chapter Button */}
+                      <button
+                        type="button"
+                        onClick={() => handleDeleteChapterInStory(ch.id, ch.chapter_number)}
+                        className="p-1 rounded-lg bg-red-950/60 hover:bg-red-900 border border-red-800 text-red-300 transition-all cursor-pointer"
+                        title={`Xóa Chương #${ch.chapter_number}`}
+                      >
+                        <Trash2 className="w-3.5 h-3.5" />
                       </button>
                     </div>
                   </div>

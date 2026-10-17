@@ -60,10 +60,17 @@ const broadcastNewComment = (chapterId, comment) => {
   }
 };
 
+const broadcastCommentRemoved = (chapterId, commentId) => {
+  if (ioInstance && chapterId) {
+    ioInstance.to(`chapter_${chapterId}`).emit('comment_removed', { commentId });
+  }
+};
+
 module.exports = {
   initSocket,
   getIo,
   sendNotificationToUser,
   broadcastNewChapter,
-  broadcastNewComment
+  broadcastNewComment,
+  broadcastCommentRemoved
 };

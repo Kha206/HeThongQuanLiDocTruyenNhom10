@@ -27,6 +27,7 @@ import {
 import ProxiedImage from '../../components/ProxiedImage';
 import PaymentModal from '../../components/PaymentModal';
 import Avatar from '../../components/Avatar';
+import CharacterAvatar from '../../components/CharacterAvatar';
 import { useAuth } from '../../context/AuthContext';
 import socket, { joinChapterRoom } from '../../services/socket';
 
@@ -93,9 +94,15 @@ const ChapterReaderPage = () => {
       });
     };
 
+    const handleCommentRemoved = ({ commentId }) => {
+      setComments((prev) => prev.filter((c) => c.id !== commentId));
+    };
+
     socket.on('new_comment_posted', handleNewComment);
+    socket.on('comment_removed', handleCommentRemoved);
     return () => {
       socket.off('new_comment_posted', handleNewComment);
+      socket.off('comment_removed', handleCommentRemoved);
     };
   }, [chapterId]);
 
@@ -312,10 +319,10 @@ const ChapterReaderPage = () => {
     return num % 2 === 0;
   }, [chapter?.chapter_number]);
 
-  // Safe Image Cover with Fallback to Story Cover
+  // Safe Image Cover with Fallback to Clean Placeholder
   const coverImage = useMemo(() => {
-    return chapter?.cover_image || story?.cover_image || 'https://comicvine.gamespot.com/a/uploads/scale_medium/0/394/78670-5533-105342-1-amazing-fantasy.jpg';
-  }, [chapter?.cover_image, story?.cover_image]);
+    return chapter?.cover_image || '/placeholder-cover.svg';
+  }, [chapter?.cover_image]);
 
   // Safely parse character credits whether array or JSON string
   const characterCredits = useMemo(() => {
@@ -332,13 +339,10 @@ const ChapterReaderPage = () => {
     return [];
   }, [chapter?.character_credits]);
 
-  // First character avatar for texture background
-  const backdropAvatar = useMemo(() => {
-    if (characterCredits && characterCredits.length > 0) {
-      return characterCredits[0].icon_url;
-    }
-    return null;
-  }, [characterCredits]);
+  // Ambient backdrop image: prioritize chapter cover or clean backdrop
+  const ambientBackdrop = useMemo(() => {
+    return coverImage || null;
+  }, [coverImage]);
 
   const handleShare = () => {
     navigator.clipboard.writeText(window.location.href);
@@ -558,14 +562,15 @@ const ChapterReaderPage = () => {
       </header>
 
       {/* BACKDROP TRANG TRÍ (Yêu cầu 3e & Vấn đề 1): Đi qua ProxiedImage, blur 28px, opacity 0.07, fixed */}
-      {backdropAvatar && (
+      {ambientBackdrop && (
         <div
           className="fixed inset-0 pointer-events-none -z-10 overflow-hidden flex items-center justify-center"
           aria-hidden="true"
         >
           <ProxiedImage
-            src={backdropAvatar}
+            src={ambientBackdrop}
             alt=""
+            fallbackSrc=""
             className="w-[600px] h-[600px] object-cover rounded-full filter blur-[28px] opacity-[0.07] scale-150 transform-gpu"
           />
           <div className="absolute inset-0 bg-[#0F0F14]/70" />
@@ -677,7 +682,7 @@ const ChapterReaderPage = () => {
 
             {/* SECTION NHÂN VẬT (Yêu cầu 3f & Vấn đề 1: ProxiedImage) */}
             {characterCredits && characterCredits.length > 0 && (
-              <section className="mt-16 pt-12 border-t border-[#2A2A38]">
+              <section id="section-characters" className="mt-16 pt-12 border-t border-[#2A2A38]">
                 <div className="flex items-center gap-2 mb-6">
                   <Users className="w-5 h-5" style={{ color: accentColor }} />
                   <h3 className="font-italiana text-2xl font-normal text-white tracking-wide">
@@ -694,12 +699,12 @@ const ChapterReaderPage = () => {
                       className="group flex-shrink-0 w-32 sm:w-auto bg-[#1A1A22] border border-[#2A2A38] hover:border-gray-500 rounded-xl p-3 flex flex-col items-center text-center transition-all duration-200 hover:-translate-y-1"
                     >
                       <div className="relative mb-2.5">
-                        <ProxiedImage
-                          src={char.icon_url}
-                          alt={char.name}
-                          className="w-16 h-16 rounded-full object-cover border-2 shadow-md group-hover:scale-105 transition-transform"
+                        <CharacterAvatar
+                          name={char.name}
+                          icon_url={char.icon_url}
+                          size="lg"
+                          className="w-16 h-16 shadow-md group-hover:scale-105 transition-transform"
                           style={{ borderColor: accentColor }}
-                          fallbackSrc="https://comicvine.gamespot.com/a/uploads/scale_small/0/3848/127622-130694-spider-man.jpg"
                         />
                       </div>
                       <span className="text-xs font-semibold text-gray-200 group-hover:text-white line-clamp-2 leading-tight">
@@ -721,7 +726,7 @@ const ChapterReaderPage = () => {
                     className="group flex items-center gap-3 p-3.5 bg-[#1A1A22] rounded-xl border border-[#2A2A38] hover:border-gray-500 transition-all text-left"
                   >
                     <ProxiedImage
-                      src={prevChapter.cover_image || coverImage}
+                      src={prevChapter.cover_image || '/placeholder-cover.svg'}
                       alt={prevChapter.title}
                       className="w-14 h-20 object-cover rounded-lg flex-shrink-0 shadow-md border border-white/5"
                     />
@@ -761,7 +766,7 @@ const ChapterReaderPage = () => {
                       </p>
                     </div>
                     <ProxiedImage
-                      src={nextChapter.cover_image || coverImage}
+                      src={nextChapter.cover_image || '/placeholder-cover.svg'}
                       alt={nextChapter.title}
                       className="w-14 h-20 object-cover rounded-lg flex-shrink-0 shadow-md border border-white/5"
                     />
@@ -891,7 +896,7 @@ const ChapterReaderPage = () => {
 
               {/* SECTION NHÂN VẬT (Yêu cầu 3f & Vấn đề 1: ProxiedImage) */}
               {characterCredits && characterCredits.length > 0 && (
-                <section className="pt-8 border-t border-[#2A2A38]">
+                <section id="section-characters" className="pt-8 border-t border-[#2A2A38]">
                   <div className="flex items-center gap-2 mb-4">
                     <Users className="w-4 h-4" style={{ color: accentColor }} />
                     <h3 className="font-italiana text-xl font-normal text-white tracking-wide">
@@ -905,12 +910,12 @@ const ChapterReaderPage = () => {
                         key={index}
                         className="group flex-shrink-0 w-28 sm:w-auto bg-[#1A1A22] border border-[#2A2A38] hover:border-gray-500 rounded-xl p-3 flex flex-col items-center text-center transition-all hover:-translate-y-0.5"
                       >
-                        <ProxiedImage
-                          src={char.icon_url}
-                          alt={char.name}
-                          className="w-14 h-14 rounded-full object-cover border-2 shadow mb-2 group-hover:scale-105 transition-transform"
+                        <CharacterAvatar
+                          name={char.name}
+                          icon_url={char.icon_url}
+                          size="lg"
+                          className="w-14 h-14 shadow mb-2 group-hover:scale-105 transition-transform"
                           style={{ borderColor: accentColor }}
-                          fallbackSrc="https://comicvine.gamespot.com/a/uploads/scale_small/0/3848/127622-130694-spider-man.jpg"
                         />
                         <span className="text-xs font-semibold text-gray-200 group-hover:text-white line-clamp-2 leading-tight">
                           {char.name}
@@ -930,7 +935,7 @@ const ChapterReaderPage = () => {
                       className="group flex items-center gap-3 p-3.5 bg-[#1A1A22] rounded-xl border border-[#2A2A38] hover:border-gray-500 transition-all text-left"
                     >
                       <ProxiedImage
-                        src={prevChapter.cover_image || coverImage}
+                        src={prevChapter.cover_image || '/placeholder-cover.svg'}
                         alt={prevChapter.title}
                         className="w-12 h-16 object-cover rounded-lg flex-shrink-0 shadow-md border border-white/5"
                       />
@@ -967,7 +972,7 @@ const ChapterReaderPage = () => {
                         </p>
                       </div>
                       <ProxiedImage
-                        src={nextChapter.cover_image || coverImage}
+                        src={nextChapter.cover_image || '/placeholder-cover.svg'}
                         alt={nextChapter.title}
                         className="w-12 h-16 object-cover rounded-lg flex-shrink-0 shadow-md border border-white/5"
                       />

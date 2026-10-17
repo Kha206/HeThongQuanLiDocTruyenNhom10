@@ -1,3 +1,4 @@
+require('dotenv').config({ path: require('path').resolve(__dirname, '../.env') });
 const http = require('http');
 const axios = require('axios');
 const app = require('../src/app');

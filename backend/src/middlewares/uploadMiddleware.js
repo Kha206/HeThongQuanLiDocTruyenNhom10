@@ -38,6 +38,43 @@ const uploadChapterCover = multer({
   }
 });
 
-module.exports = {
-  uploadChapterCover
+const avatarUploadDir = path.join(__dirname, '../../uploads/avatars');
+if (!fs.existsSync(avatarUploadDir)) {
+  fs.mkdirSync(avatarUploadDir, { recursive: true });
+}
+
+const avatarStorage = multer.diskStorage({
+  destination: (req, file, cb) => {
+    cb(null, avatarUploadDir);
+  },
+  filename: (req, file, cb) => {
+    const ext = path.extname(file.originalname).toLowerCase();
+    const cleanExt = ext ? ext : '.jpg';
+    const userId = req.user ? req.user.id : 'anon';
+    const uniqueSuffix = `${Date.now()}_${Math.round(Math.random() * 1e9)}`;
+    cb(null, `avatar_${userId}_${uniqueSuffix}${cleanExt}`);
+  }
+});
+
+const avatarFileFilter = (req, file, cb) => {
+  const allowedMimeTypes = ['image/jpeg', 'image/png', 'image/webp'];
+  if (allowedMimeTypes.includes(file.mimetype)) {
+    cb(null, true);
+  } else {
+    cb(new Error('Chỉ chấp nhận định dạng ảnh JPG, PNG hoặc WEBP.'), false);
+  }
 };
+
+const uploadAvatar = multer({
+  storage: avatarStorage,
+  fileFilter: avatarFileFilter,
+  limits: {
+    fileSize: 2 * 1024 * 1024 // 2MB limit as standard for profile avatars
+  }
+});
+
+module.exports = {
+  uploadChapterCover,
+  uploadAvatar
+};
+

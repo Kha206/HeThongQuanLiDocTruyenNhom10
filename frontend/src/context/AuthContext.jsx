@@ -4,12 +4,20 @@ import api from '../services/api';
 const AuthContext = createContext(null);
 
 export const AuthProvider = ({ children }) => {
-  const [user, setUser] = useState(null);
   const [token, setToken] = useState(localStorage.getItem('marvel_auth_token') || null);
-  const [loading, setLoading] = useState(true);
+  const [user, setUser] = useState(() => {
+    try {
+      const savedUser = localStorage.getItem('marvel_auth_user');
+      return savedUser ? JSON.parse(savedUser) : null;
+    } catch {
+      return null;
+    }
+  });
+  const [loading, setLoading] = useState(!!token);
 
   const logout = () => {
     localStorage.removeItem('marvel_auth_token');
+    localStorage.removeItem('marvel_auth_user');
     setToken(null);
     setUser(null);
   };
@@ -25,6 +33,7 @@ export const AuthProvider = ({ children }) => {
         const res = await api.get('/auth/me');
         if (res.success && res.user) {
           setUser(res.user);
+          localStorage.setItem('marvel_auth_user', JSON.stringify(res.user));
         } else {
           logout();
         }
@@ -44,6 +53,7 @@ export const AuthProvider = ({ children }) => {
       const res = await api.post('/auth/login', { loginId, password });
       if (res.success && res.token) {
         localStorage.setItem('marvel_auth_token', res.token);
+        localStorage.setItem('marvel_auth_user', JSON.stringify(res.user));
         setToken(res.token);
         setUser(res.user);
         return { success: true, user: res.user };
@@ -59,6 +69,7 @@ export const AuthProvider = ({ children }) => {
       const res = await api.post('/auth/register', userData);
       if (res.success && res.token) {
         localStorage.setItem('marvel_auth_token', res.token);
+        localStorage.setItem('marvel_auth_user', JSON.stringify(res.user));
         setToken(res.token);
         setUser(res.user);
         return { success: true, user: res.user };
@@ -67,6 +78,11 @@ export const AuthProvider = ({ children }) => {
     } catch (err) {
       return { success: false, message: err.message || 'Lỗi đăng ký.' };
     }
+  };
+
+  const updateUser = (updatedUser) => {
+    setUser(updatedUser);
+    localStorage.setItem('marvel_auth_user', JSON.stringify(updatedUser));
   };
 
   const isAdmin = user?.role === 'admin';
@@ -82,7 +98,8 @@ export const AuthProvider = ({ children }) => {
         isAdmin,
         login,
         register,
-        logout
+        logout,
+        updateUser
       }}
     >
       {children}

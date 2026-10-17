@@ -16,6 +16,11 @@ import AdminStoriesPage from './pages/Admin/AdminStoriesPage';
 import AdminChaptersPage from './pages/Admin/AdminChaptersPage';
 import AdminPlansPage from './pages/Admin/AdminPlansPage';
 import AdminCommentsPage from './pages/Admin/AdminCommentsPage';
+import AdminUsersPage from './pages/Admin/AdminUsersPage';
+import AdminDashboardPage from './pages/Admin/AdminDashboardPage';
+import ProfilePage from './pages/Reader/ProfilePage';
+import ForgotPasswordPage from './pages/Auth/ForgotPasswordPage';
+import ResetPasswordPage from './pages/Auth/ResetPasswordPage';
 import ProtectedRoute from './components/ProtectedRoute';
 import ScrollToTop from './components/ScrollToTop';
 
@@ -62,8 +67,42 @@ function App() {
               />
               <Route path="/login" element={<LoginPage />} />
               <Route path="/register" element={<RegisterPage />} />
+              <Route path="/forgot-password" element={<ForgotPasswordPage />} />
+              <Route path="/reset-password" element={<ResetPasswordPage />} />
+              <Route
+                path="/profile"
+                element={
+                  <ProtectedRoute>
+                    <ProfilePage />
+                  </ProtectedRoute>
+                }
+              />
 
               {/* Admin Protected Routes */}
+              <Route
+                path="/admin"
+                element={
+                  <ProtectedRoute requireAdmin={true}>
+                    <AdminDashboardPage />
+                  </ProtectedRoute>
+                }
+              />
+              <Route
+                path="/admin/dashboard"
+                element={
+                  <ProtectedRoute requireAdmin={true}>
+                    <AdminDashboardPage />
+                  </ProtectedRoute>
+                }
+              />
+              <Route
+                path="/admin/users"
+                element={
+                  <ProtectedRoute requireAdmin={true}>
+                    <AdminUsersPage />
+                  </ProtectedRoute>
+                }
+              />
               <Route
                 path="/admin/stories"
                 element={

@@ -1,10 +1,11 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { Link, useNavigate, useLocation } from 'react-router-dom';
 import { useAuth } from '../../context/AuthContext';
-import { Lock, Mail, AlertCircle, ArrowRight, ShieldCheck } from 'lucide-react';
+import { Mail, AlertCircle, ArrowRight, ShieldCheck } from 'lucide-react';
+import PasswordInput from '../../components/PasswordInput';
 
 const LoginPage = () => {
-  const { login } = useAuth();
+  const { login, isAuthenticated, loading: authLoading } = useAuth();
   const navigate = useNavigate();
   const location = useLocation();
 
@@ -12,6 +13,12 @@ const LoginPage = () => {
   const [password, setPassword] = useState('');
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState(null);
+
+  useEffect(() => {
+    if (isAuthenticated && !authLoading) {
+      navigate(location.state?.from || '/', { replace: true });
+    }
+  }, [isAuthenticated, authLoading, navigate, location.state]);
 
   const handleSubmit = async (e) => {
     e.preventDefault();
@@ -80,20 +87,21 @@ const LoginPage = () => {
           </div>
 
           <div>
-            <label className="block text-xs font-semibold text-gray-300 mb-1">
-              Mật Khẩu
-            </label>
-            <div className="relative">
-              <input
-                type="password"
-                required
-                value={password}
-                onChange={(e) => setPassword(e.target.value)}
-                placeholder="Nhập mật khẩu..."
-                className="w-full bg-[#0F0F14] text-sm text-gray-200 pl-10 pr-4 py-2.5 rounded-xl border border-[#2A2A38] focus:outline-none focus:border-[#ED1D24]"
-              />
-              <Lock className="w-4 h-4 text-gray-400 absolute left-3.5 top-3" />
+            <div className="flex items-center justify-between mb-1">
+              <label className="block text-xs font-semibold text-gray-300">
+                Mật Khẩu
+              </label>
+              <Link to="/forgot-password" className="text-xs text-[#ED1D24] hover:underline font-medium">
+                Quên mật khẩu?
+              </Link>
             </div>
+            <PasswordInput
+              id="login-password"
+              required
+              value={password}
+              onChange={(e) => setPassword(e.target.value)}
+              placeholder="Nhập mật khẩu..."
+            />
           </div>
 
           <button

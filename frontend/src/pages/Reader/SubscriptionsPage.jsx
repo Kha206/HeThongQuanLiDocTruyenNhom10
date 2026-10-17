@@ -10,7 +10,7 @@ import {
 import PaymentModal from '../../components/PaymentModal';
 
 const SubscriptionsPage = () => {
-  const { isAuthenticated } = useAuth();
+  const { isAuthenticated, loading: authLoading } = useAuth();
   const navigate = useNavigate();
   const [plans, setPlans] = useState([]);
   const [mySubscription, setMySubscription] = useState(null);
@@ -55,8 +55,9 @@ const SubscriptionsPage = () => {
   }, [isAuthenticated]);
 
   const handlePlanClick = (plan) => {
+    if (authLoading) return;
     if (!isAuthenticated) {
-      navigate('/login');
+      navigate('/login', { state: { from: '/subscriptions' } });
       return;
     }
     setSelectedPlanForPayment(plan);

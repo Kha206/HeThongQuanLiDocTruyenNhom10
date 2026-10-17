@@ -27,6 +27,13 @@ const StoryDetailPage = () => {
   const [followersCount, setFollowersCount] = useState(0);
   const [followLoading, setFollowLoading] = useState(false);
 
+  // Sprint 5 States: Đánh giá truyện (Rating thật 1-5 sao)
+  const [ratingData, setRatingData] = useState({ average_rating: null, rating_count: 0, user_rating: null });
+  const [userRatingScore, setUserRatingScore] = useState(null);
+  const [hoverRating, setHoverRating] = useState(0);
+  const [ratingSubmitting, setRatingSubmitting] = useState(false);
+  const [ratingFeedback, setRatingFeedback] = useState(null);
+
   useEffect(() => {
     const fetchStoryDetail = async () => {
       setLoading(true);
@@ -34,6 +41,13 @@ const StoryDetailPage = () => {
         const res = await api.get(`/stories/${id}`);
         if (res.success && res.story) {
           setStory(res.story);
+          if (res.story.average_rating !== undefined) {
+            setRatingData(prev => ({
+              ...prev,
+              average_rating: res.story.average_rating,
+              rating_count: res.story.rating_count || 0
+            }));
+          }
         } else {
           setError('Không tìm thấy thông tin truyện.');
         }
@@ -47,6 +61,52 @@ const StoryDetailPage = () => {
 
     fetchStoryDetail();
   }, [id]);
+
+  // Fetch rating info (average & user's own score)
+  useEffect(() => {
+    if (!id) return;
+    const fetchRating = async () => {
+      try {
+        const res = await api.get(`/stories/${id}/rating`);
+        if (res.success && res.data) {
+          setRatingData(res.data);
+          if (res.data.user_rating) {
+            setUserRatingScore(res.data.user_rating.score);
+          }
+        }
+      } catch (err) {
+        console.warn('Error fetching rating:', err);
+      }
+    };
+
+    fetchRating();
+  }, [id, user]);
+
+  const handleRate = async (score) => {
+    if (!user) {
+      navigate('/login');
+      return;
+    }
+    setRatingSubmitting(true);
+    setRatingFeedback(null);
+    try {
+      const res = await api.post(`/stories/${id}/rating`, { score });
+      if (res.success && res.data) {
+        setUserRatingScore(score);
+        setRatingData(prev => ({
+          ...prev,
+          average_rating: res.data.average_rating,
+          rating_count: res.data.rating_count
+        }));
+        setRatingFeedback({ type: 'success', text: `Đã chấm ${score} sao!` });
+      }
+    } catch (err) {
+      const msg = err.response?.data?.message || err.message || 'Lỗi khi gửi đánh giá.';
+      setRatingFeedback({ type: 'error', text: msg });
+    } finally {
+      setRatingSubmitting(false);
+    }
+  };
 
   // Check purchase ownership & follow status
   useEffect(() => {
@@ -184,7 +244,7 @@ const StoryDetailPage = () => {
                   src={story.cover_image}
                   alt={story.title}
                   className="w-full h-full object-cover transition-transform duration-500 group-hover:scale-105"
-                  fallbackSrc="https://comicvine.gamespot.com/a/uploads/scale_medium/0/394/78670-5533-105342-1-amazing-fantasy.jpg"
+                  fallbackSrc="/placeholder-cover.svg"
                 />
                 
                 {/* Status Badge (Top-Left) */}
@@ -245,9 +305,15 @@ const StoryDetailPage = () => {
                   <span className="flex items-center gap-1 bg-[#23232E] text-gray-300 px-2.5 py-1 rounded font-mono">
                     <Calendar className="w-3.5 h-3.5 text-[#ED1D24]" /> {story.release_year || 'N/A'}
                   </span>
-                  <span className="flex items-center gap-1 bg-amber-500/20 text-amber-400 px-2.5 py-1 rounded font-semibold font-mono">
-                    <Star className="w-3.5 h-3.5 fill-amber-400" /> {Number(story.rating || 5.0).toFixed(1)} / 5.0
-                  </span>
+                  {ratingData?.rating_count > 0 && ratingData?.average_rating ? (
+                    <span className="flex items-center gap-1 bg-amber-500/20 text-amber-400 px-2.5 py-1 rounded font-semibold font-mono">
+                      <Star className="w-3.5 h-3.5 fill-amber-400" /> {Number(ratingData.average_rating).toFixed(1)} / 5.0 ({ratingData.rating_count} đánh giá)
+                    </span>
+                  ) : (
+                    <span className="flex items-center gap-1 bg-gray-800/80 text-gray-400 px-2.5 py-1 rounded text-xs">
+                      <Star className="w-3.5 h-3.5 text-gray-500" /> Chưa có đánh giá
+                    </span>
+                  )}
                   <span className="flex items-center gap-1 bg-[#23232E] text-gray-300 px-2.5 py-1 rounded font-mono">
                     <Eye className="w-3.5 h-3.5 text-[#ED1D24]" /> {(story.view_count || 0).toLocaleString()} lượt đọc
                   </span>
@@ -282,6 +348,51 @@ const StoryDetailPage = () => {
                 {/* Description */}
                 <div className="mt-6 text-sm sm:text-base text-gray-300 leading-relaxed font-light space-y-2">
                   <p>{story.description || 'Chưa có mô tả chi tiết cho ấn phẩm này.'}</p>
+                </div>
+
+                {/* Interactive Star Rating Box */}
+                <div className="mt-6 p-4 bg-[#14141C] border border-[#2A2A38] rounded-xl flex flex-col sm:flex-row sm:items-center justify-between gap-3 shadow-sm">
+                  <div>
+                    <h4 className="text-sm font-bold text-white flex items-center gap-1.5">
+                      <Star className="w-4 h-4 text-amber-400 fill-amber-400" />
+                      <span>Đánh Giá Truyện (1-5 Sao)</span>
+                    </h4>
+                    <p className="text-xs text-gray-400 mt-0.5">
+                      {userRatingScore
+                        ? `Bạn đã đánh giá ${userRatingScore} sao. Bạn có thể bấm chọn lại để thay đổi điểm.`
+                        : 'Chia sẻ đánh giá chất lượng của bạn về bộ truyện này.'}
+                    </p>
+                  </div>
+
+                  <div className="flex items-center gap-3">
+                    <div className="flex items-center space-x-1">
+                      {[1, 2, 3, 4, 5].map((star) => (
+                        <button
+                          key={star}
+                          type="button"
+                          disabled={ratingSubmitting}
+                          onClick={() => handleRate(star)}
+                          onMouseEnter={() => setHoverRating(star)}
+                          onMouseLeave={() => setHoverRating(0)}
+                          className="p-1 hover:scale-125 transition-transform disabled:opacity-50"
+                          title={`Chấm ${star} sao`}
+                        >
+                          <Star
+                            className={`w-6 h-6 transition-colors ${
+                              (hoverRating || userRatingScore || 0) >= star
+                                ? 'text-amber-400 fill-amber-400 drop-shadow-[0_0_8px_rgba(251,191,36,0.5)]'
+                                : 'text-gray-600 hover:text-gray-400'
+                            }`}
+                          />
+                        </button>
+                      ))}
+                    </div>
+                    {ratingFeedback && (
+                      <span className={`text-xs font-semibold px-2 py-1 rounded ${ratingFeedback.type === 'error' ? 'bg-red-950/60 text-red-400 border border-red-500/30' : 'bg-emerald-950/60 text-emerald-400 border border-emerald-500/30'}`}>
+                        {ratingFeedback.text}
+                      </span>
+                    )}
+                  </div>
                 </div>
               </div>
 
@@ -381,7 +492,7 @@ const StoryDetailPage = () => {
           <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-3">
             {story.chapters.map((ch) => {
               const chapterAccent = ch.accent_color || '#ED1D24';
-              const chapterCover = ch.cover_image || story.cover_image;
+              const chapterCover = ch.cover_image || '/placeholder-cover.svg';
               return (
                 <Link
                   key={ch.id}
@@ -401,7 +512,7 @@ const StoryDetailPage = () => {
                         src={chapterCover}
                         alt={ch.title}
                         className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-300"
-                        fallbackSrc={story.cover_image}
+                        fallbackSrc="/placeholder-cover.svg"
                       />
                       <div className="absolute top-1 left-1 px-1 bg-black/80 rounded text-[9px] font-mono text-white font-bold">
                         #{ch.chapter_number}

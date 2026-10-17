@@ -66,7 +66,7 @@ const CHAR_ICONS = {
   beyonder: 'https://comicvine.gamespot.com/a/uploads/scale_small/6/67663/2754348-04_cropped.jpg',
   mallen: 'https://comicvine.gamespot.com/a/uploads/scale_small/11/118064/4096618-9691217218-11686.jpg',
   mayaHansen: 'https://comicvine.gamespot.com/a/uploads/scale_small/11/118064/4096612-7617155689-11686.jpg',
-  salKennedy: 'https://comicvine.gamespot.com/a/uploads/scale_small/0/4/71924-12054-104922-1-strangers-in-paradis.jpg'
+  salKennedy: null
 };
 
 // 8 Marvel Masterpieces with 10-12 authentic ComicVine chapters each
@@ -99,7 +99,7 @@ const MARVEL_VOLUMES_CATALOG = [
         character_credits: [
           { name: 'Spider-Man', icon_url: CHAR_ICONS.spiderMan },
           { name: 'Chameleon', icon_url: CHAR_ICONS.chameleon },
-          { name: 'J. Jonah Jameson', icon_url: CHAR_ICONS.peterParker }
+          { name: 'J. Jonah Jameson', icon_url: CHAR_ICONS.jjj }
         ],
         content: `With great power there must also come great responsibility. In his historic solo debut, high school outcast Peter Parker tries to cash in on his arachnid abilities in show business, only to discover the harsh reality of heroism after personal tragedy strikes home.\n\nDesperate to support Aunt May, Peter seeks employment with the Fantastic Four, but when that fails, he must stop the shape-shifting Soviet spy known as the Chameleon from stealing top-secret military defense plans.`
       },
@@ -114,7 +114,7 @@ const MARVEL_VOLUMES_CATALOG = [
         character_credits: [
           { name: 'Spider-Man', icon_url: CHAR_ICONS.spiderMan },
           { name: 'Vulture (Adrian Toomes)', icon_url: CHAR_ICONS.vulture },
-          { name: 'Tinkerer', icon_url: CHAR_ICONS.doctorDoom }
+          { name: 'Tinkerer', icon_url: 'https://comicvine.gamespot.com/a/uploads/square_small/10/101073/2055173-tinkerer.png' }
         ],
         content: `Terror strikes from the skies of Manhattan as the winged Vulture swoops down on an unsuspecting diamond exchange! Peter Parker realizes he can take aerial photographs of the villain to sell to the Daily Bugle, inventing his miniature automatic camera setup.\n\nTrapped inside a water tower during their first ferocious duel, Spider-Man invents an anti-magnetic inverter device to neutralize the Vulture's flight harness before uncovering an extraterrestrial radio plot involving the mysterious Tinkerer.`
       },
@@ -129,7 +129,7 @@ const MARVEL_VOLUMES_CATALOG = [
         character_credits: [
           { name: 'Spider-Man', icon_url: CHAR_ICONS.spiderMan },
           { name: 'Doctor Octopus', icon_url: CHAR_ICONS.doctorOctopus },
-          { name: 'Human Torch', icon_url: CHAR_ICONS.reedRichards }
+          { name: 'Human Torch', icon_url: CHAR_ICONS.humanTorch }
         ],
         content: `Atomic research takes a horrifying turn when Dr. Otto Octavius is bonded to four indestructible mechanical tentacles following a radiation lab disaster. Taking over an atomic research hospital, the mad genius proclaims himself master of atomic energy!\n\nSuffering his very first crushing defeat at the hands of Doc Ock, Peter Parker contemplates hanging up the mask forever until an inspiring speech by Johnny Storm rekindles his courage to storm the facility and save the hostages.`
       },
@@ -158,7 +158,7 @@ const MARVEL_VOLUMES_CATALOG = [
         character_credits: [
           { name: 'Spider-Man', icon_url: CHAR_ICONS.spiderMan },
           { name: 'Doctor Doom', icon_url: CHAR_ICONS.doctorDoom },
-          { name: 'Flash Thompson', icon_url: CHAR_ICONS.peterParker }
+          { name: 'Flash Thompson', icon_url: CHAR_ICONS.flashThompson }
         ],
         content: `Believing Spider-Man might be an outcast villain sympathetic to his cause, the tyrannical monarch of Latveria, Doctor Doom, broadcasts a telepathic summons across New York City! When Spidey rejects the proposal of world conquest, Doom targets him for absolute eradication.\n\nDoom mistakenly abducts Peter's school rival Flash Thompson in a makeshift Spider-Man costume, forcing the real Wall-Crawler to infiltrate Doom's fortified embassy in an electrifying showdown.`
       },
@@ -200,7 +200,7 @@ const MARVEL_VOLUMES_CATALOG = [
         default_accent: '#0288D1',
         character_credits: [
           { name: 'Spider-Man', icon_url: CHAR_ICONS.spiderMan },
-          { name: 'Living Brain', icon_url: CHAR_ICONS.doctorOctopus }
+          { name: 'Living Brain', icon_url: 'https://comicvine.gamespot.com/a/uploads/square_small/0/229/96809-38759-living-brain.jpg' }
         ],
         content: `Midtown High School hosts a demonstration of the world's most advanced computing machine: The Living Brain, capable of solving any problem and deducing secret identities! But when two greedy technicians attempt to steal its mathematical secrets, the robot goes on a destructive rampage.\n\nPeter Parker must simultaneously dodge high school boxing challenges from Flash Thompson and disable the unstoppable mechanical titan before it deduces his deepest secret.`
       },
@@ -228,9 +228,9 @@ const MARVEL_VOLUMES_CATALOG = [
         default_accent: '#D32F2F',
         character_credits: [
           { name: 'Spider-Man', icon_url: CHAR_ICONS.spiderMan },
-          { name: 'Montana', icon_url: CHAR_ICONS.peterParker },
-          { name: 'Ox', icon_url: CHAR_ICONS.sandman },
-          { name: 'Fancy Dan', icon_url: CHAR_ICONS.vulture }
+          { name: 'Montana', icon_url: 'https://comicvine.gamespot.com/a/uploads/square_small/8/84205/3863997-301372-160841-montana.jpg' },
+          { name: 'Ox', icon_url: 'https://comicvine.gamespot.com/a/uploads/square_small/8/84205/3864141-134835-31206-the-ox.jpg' },
+          { name: 'Fancy Dan', icon_url: 'https://comicvine.gamespot.com/a/uploads/square_small/2/26485/522489-fancy_dan.jpg' }
         ],
         content: `Underworld crime syndicates rally behind the Big Man, deploying a trio of lethal street operatives known as The Enforcers: lasso specialist Montana, judo master Fancy Dan, and hulking bruiser Ox!\n\nSpider-Man finds himself pushed to his acrobat limits dodging flying ropes, flying kicks, and concrete-shattering blows in a multi-front warehouse brawl.`
       },
@@ -245,7 +245,7 @@ const MARVEL_VOLUMES_CATALOG = [
         character_credits: [
           { name: 'Spider-Man', icon_url: CHAR_ICONS.spiderMan },
           { name: 'Doctor Octopus', icon_url: CHAR_ICONS.doctorOctopus },
-          { name: 'Betty Brant', icon_url: CHAR_ICONS.peterParker }
+          { name: 'Betty Brant', icon_url: 'https://comicvine.gamespot.com/a/uploads/square_small/0/5599/180421-38371-betty-brant.jpg' }
         ],
         content: `Doctor Octopus is released from prison and hijacks Betty Brant's family affairs, forcing Peter Parker to battle him across Philadelphia and New York. The emotional stakes skyrocket when Betty's brother is caught in the crossfire!\n\nA heart-wrenching turning point in Peter's early career as the cost of his double life begins tearing apart those he loves most.`
       },
@@ -260,20 +260,20 @@ const MARVEL_VOLUMES_CATALOG = [
         character_credits: [
           { name: 'Spider-Man', icon_url: CHAR_ICONS.spiderMan },
           { name: 'Doctor Octopus', icon_url: CHAR_ICONS.doctorOctopus },
-          { name: 'J. Jonah Jameson', icon_url: CHAR_ICONS.peterParker }
+          { name: 'J. Jonah Jameson', icon_url: CHAR_ICONS.jjj }
         ],
         content: `Weakened by a terrible flu, Spider-Man is cornered and stripped of his mask right in front of J. Jonah Jameson and Betty Brant! Yet his frail state convinces everyone that puny Peter Parker was simply foolishly trying to impersonate the true hero.\n\nRecovering his health at last, Spider-Man unleashes his full ferocious power against Octopus in an unforgettable zoo climax that re-establishes his dominance.`
       }
     ]
   },
   {
-    comicvine_id: 18151,
+    comicvine_id: 18023,
     title: 'Civil War',
     original_title: 'Civil War (2006)',
     slug: 'civil-war-2006',
     description: 'The Marvel Universe is split in two! Following a tragedy in Stamford, Connecticut, the US Government passes the Superhuman Registration Act. Iron Man leads the pro-registration side, while Captain America stands firm for individual liberties, leading to an earth-shattering clash of heroes.',
-    cover_image: 'https://comicvine.gamespot.com/a/uploads/scale_small/11/118689/2903877-2767530_2700867_supsm2013001_camunvar_1_.jpg',
-    banner_image: 'https://comicvine.gamespot.com/a/uploads/scale_small/11/118689/2903877-2767530_2700867_supsm2013001_camunvar_1_.jpg',
+    cover_image: 'https://comicvine.gamespot.com/a/uploads/scale_medium/6/67663/3052825-442.jpg',
+    banner_image: 'https://comicvine.gamespot.com/a/uploads/scale_medium/6/67663/3052825-442.jpg',
     publisher: 'Marvel Comics',
     release_year: 2006,
     status: 'completed',
@@ -285,11 +285,11 @@ const MARVEL_VOLUMES_CATALOG = [
     issues: [
       {
         chapter_number: 1,
-        comicvine_issue_id: 104273,
+        comicvine_issue_id: 105525,
         title: 'Whose Side Are You On?',
         release_date: '2006-07-01',
         is_preview: true,
-        cover_image: 'https://comicvine.gamespot.com/a/uploads/scale_small/11/118689/2903877-2767530_2700867_supsm2013001_camunvar_1_.jpg',
+        cover_image: 'https://comicvine.gamespot.com/a/uploads/scale_medium/0/443/82656-18023-105525-1-civil-war.jpg',
         default_accent: '#C62828',
         character_credits: [
           { name: 'Captain America', icon_url: CHAR_ICONS.captainAmerica },
@@ -300,11 +300,11 @@ const MARVEL_VOLUMES_CATALOG = [
       },
       {
         chapter_number: 2,
-        comicvine_issue_id: 104598,
+        comicvine_issue_id: 105570,
         title: 'Lines Are Drawn',
         release_date: '2006-08-01',
         is_preview: false,
-        cover_image: 'https://comicvine.gamespot.com/a/uploads/scale_medium/6/67663/3608583-02.jpg',
+        cover_image: 'https://comicvine.gamespot.com/a/uploads/scale_medium/0/443/83333-18023-105570-1-civil-war.jpg',
         default_accent: '#1565C0',
         character_credits: [
           { name: 'Iron Man', icon_url: CHAR_ICONS.ironMan },
@@ -315,71 +315,71 @@ const MARVEL_VOLUMES_CATALOG = [
       },
       {
         chapter_number: 3,
-        comicvine_issue_id: 105214,
+        comicvine_issue_id: 105624,
         title: 'The Great Betrayal',
         release_date: '2006-09-01',
         is_preview: false,
-        cover_image: 'https://comicvine.gamespot.com/a/uploads/scale_medium/6/67663/3668134-03.jpg',
+        cover_image: 'https://comicvine.gamespot.com/a/uploads/scale_medium/0/443/83494-18023-105624-2-civil-war.jpg',
         default_accent: '#FF8F00',
         character_credits: [
           { name: 'Captain America', icon_url: CHAR_ICONS.captainAmerica },
           { name: 'Iron Man', icon_url: CHAR_ICONS.ironMan },
-          { name: 'Hercules', icon_url: CHAR_ICONS.thor }
+          { name: 'Hercules', icon_url: 'https://comicvine.gamespot.com/a/uploads/square_small/10/100239/2849284-__addme___marvel_milestones_v9999__2___page_1.jpg' }
         ],
         content: `A fake emergency distress beacon lures the Secret Avengers into a massive ambush inside a chemical manufacturing plant! Iron Man presents Captain America with an ultimatum to surrender under immunity terms.\n\nCap activates a miniature EMP hidden in his gauntlet, initiating the first savage melee between former comrades-in-arms across the burning factory floor.`
       },
       {
         chapter_number: 4,
-        comicvine_issue_id: 106001,
+        comicvine_issue_id: 105682,
         title: 'A Murder of Gods',
         release_date: '2006-10-01',
         is_preview: false,
-        cover_image: 'https://comicvine.gamespot.com/a/uploads/scale_medium/0/4/71278-11920-104276-1-phoenix.jpg',
+        cover_image: 'https://comicvine.gamespot.com/a/uploads/scale_medium/0/443/84167-18023-105682-1-civil-war.jpg',
         default_accent: '#455A64',
         character_credits: [
           { name: 'Thor (Clone Ragnarok)', icon_url: CHAR_ICONS.thor },
-          { name: 'Goliath (Bill Foster)', icon_url: CHAR_ICONS.hulk },
+          { name: 'Goliath (Bill Foster)', icon_url: 'https://comicvine.gamespot.com/a/uploads/square_small/10/100555/2788526-2788520-1357297442wonder_comics_1_pg_22.jpg' },
           { name: 'Captain America', icon_url: CHAR_ICONS.captainAmerica }
         ],
         content: `The pro-registration coalition unleashes their secret weapon: a cyborg clone of the Norse God of Thunder! But the synthetic deity malfunctions, blasting a lethal bolt of lightning directly through the chest of Goliath.\n\nHorrified by the bloodshed of a brother hero, Sue Storm deflects the clone's strikes with a monumental force field, allowing the shattered Secret Avengers to extract their wounded.`
       },
       {
         chapter_number: 5,
-        comicvine_issue_id: 107122,
+        comicvine_issue_id: 106999,
         title: 'Reckoning at the Negative Zone',
         release_date: '2006-11-01',
         is_preview: false,
-        cover_image: 'https://comicvine.gamespot.com/a/uploads/scale_medium/0/4/71279-11920-104277-1-phoenix.jpg',
+        cover_image: 'https://comicvine.gamespot.com/a/uploads/scale_medium/11/110017/2945051-www.jpg',
         default_accent: '#6A1B9A',
         character_credits: [
           { name: 'Spider-Man', icon_url: CHAR_ICONS.spiderMan },
           { name: 'Iron Man', icon_url: CHAR_ICONS.ironMan },
-          { name: 'Punisher', icon_url: CHAR_ICONS.wolverine }
+          { name: 'Punisher', icon_url: 'https://comicvine.gamespot.com/a/uploads/square_small/0/5756/684096-pfc_066_01.jpg' }
         ],
         content: `Disillusioned after inspecting the inhumane conditions of Project 42, Spider-Man turns against Tony Stark and is ruthlessly hunted through Manhattan sewers by government-sanctioned super-villains.\n\nSaved by the Punisher, a battered Peter Parker joins Captain America's resistance, broadcasting an impassioned plea to the world condemning government overreach.`
       },
       {
         chapter_number: 6,
-        comicvine_issue_id: 108344,
+        comicvine_issue_id: 107000,
         title: 'The Final Gambit',
         release_date: '2006-12-01',
         is_preview: false,
-        cover_image: 'https://comicvine.gamespot.com/a/uploads/scale_medium/1/15776/9970880-phoenix6.jpg',
+        cover_image: 'https://comicvine.gamespot.com/a/uploads/scale_medium/1/11307/440508-civil_war_6_00.jpg',
         default_accent: '#D84315',
         character_credits: [
           { name: 'Captain America', icon_url: CHAR_ICONS.captainAmerica },
           { name: 'Iron Man', icon_url: CHAR_ICONS.ironMan },
-          { name: 'Black Panther', icon_url: CHAR_ICONS.reedRichards }
+          { name: 'Black Panther', icon_url: 'https://comicvine.gamespot.com/a/uploads/square_small/11128/111284329/8780700-0001.jpg' }
         ],
         content: `With the assistance of Black Panther and Namor, the Anti-Registration forces execute an audacious assault on the Negative Zone penitentiary, liberating dozens of captured comrades.\n\nCloak teleports hundreds of battling superhumans right into the skies above Times Square for the ultimate, apocalyptic clash of ideologies.`
       },
       {
         chapter_number: 7,
-        comicvine_issue_id: 109455,
+        comicvine_issue_id: 106626,
         title: 'The Cost of Peace',
         release_date: '2007-01-01',
         is_preview: false,
-        cover_image: 'https://comicvine.gamespot.com/a/uploads/scale_medium/1/15776/9970881-phoenix7.jpg',
+        cover_image: 'https://comicvine.gamespot.com/a/uploads/scale_medium/11/110017/2779408-www.jpg',
         default_accent: '#B71C1C',
         character_credits: [
           { name: 'Captain America', icon_url: CHAR_ICONS.captainAmerica },
@@ -389,25 +389,25 @@ const MARVEL_VOLUMES_CATALOG = [
       },
       {
         chapter_number: 8,
-        comicvine_issue_id: 110200,
+        comicvine_issue_id: 106844,
         title: 'Frontline: The Sleeper Cell',
         release_date: '2007-02-01',
         is_preview: false,
-        cover_image: 'https://comicvine.gamespot.com/a/uploads/scale_medium/1/15776/9970882-phoenix8.jpg',
+        cover_image: 'https://comicvine.gamespot.com/a/uploads/scale_medium/0/787/97460-18245-106844-1-civil-war-front-lin.jpg',
         default_accent: '#37474F',
         character_credits: [
           { name: 'Iron Man', icon_url: CHAR_ICONS.ironMan },
-          { name: 'Speedball (Penance)', icon_url: CHAR_ICONS.spiderMan }
+          { name: 'Speedball (Penance)', icon_url: 'https://comicvine.gamespot.com/a/uploads/square_small/12/124259/9998859-large-4357933.jpg' }
         ],
         content: `Investigative reporters Ben Urich and Sally Floyd unearth an explosive conspiracy behind Stamford: corporate profiteering deliberately stoking public panic to pass security deregulation.\n\nMeanwhile, Robbie Baldwin emerges from medical confinement scarred by survivor's guilt, forging an agonizing new identity within the Fifty-State Initiative.`
       },
       {
         chapter_number: 9,
-        comicvine_issue_id: 111300,
+        comicvine_issue_id: 108957,
         title: 'Casualties of War',
         release_date: '2007-03-01',
         is_preview: false,
-        cover_image: 'https://comicvine.gamespot.com/a/uploads/scale_medium/1/15776/9970884-phoenix9.jpg',
+        cover_image: 'https://comicvine.gamespot.com/a/uploads/scale_medium/0/574/114369-18542-108957-1-iron-man-captain-ame.jpg',
         default_accent: '#1A237E',
         character_credits: [
           { name: 'Iron Man', icon_url: CHAR_ICONS.ironMan },
@@ -417,11 +417,11 @@ const MARVEL_VOLUMES_CATALOG = [
       },
       {
         chapter_number: 10,
-        comicvine_issue_id: 112100,
+        comicvine_issue_id: 106909,
         title: 'The Confession',
         release_date: '2007-04-01',
         is_preview: false,
-        cover_image: 'https://comicvine.gamespot.com/a/uploads/scale_medium/1/15776/9970885-phoenix10.jpg',
+        cover_image: 'https://comicvine.gamespot.com/a/uploads/scale_medium/0/40/98620-18258-106909-1-civil-war-the-confe.jpg',
         default_accent: '#263238',
         character_credits: [
           { name: 'Iron Man', icon_url: CHAR_ICONS.ironMan },
@@ -473,7 +473,7 @@ const MARVEL_VOLUMES_CATALOG = [
         default_accent: '#7B1FA2',
         character_credits: [
           { name: 'Adam Warlock', icon_url: CHAR_ICONS.adamWarlock },
-          { name: 'Doctor Strange', icon_url: CHAR_ICONS.reedRichards },
+          { name: 'Doctor Strange', icon_url: 'https://comicvine.gamespot.com/a/uploads/square_small/12/124259/8753901-ezgif-3-69b95d2d1b.jpg' },
           { name: 'Thanos', icon_url: CHAR_ICONS.thanos }
         ],
         content: `Global chaos descends as planes fall from the skies and tidal waves engulf coastlines. Emerging from the Soul World, the resurrected messiah Adam Warlock takes command of the surviving champions.\n\nThanos constructs a towering cosmic monument from temple ruins, imprisoning his disfigured granddaughter Nebula in an eternal state of agony.`
@@ -518,7 +518,7 @@ const MARVEL_VOLUMES_CATALOG = [
         default_accent: '#3949AB',
         character_credits: [
           { name: 'Thanos', icon_url: CHAR_ICONS.thanos },
-          { name: 'Eternity', icon_url: CHAR_ICONS.silverSurfer },
+          { name: 'Eternity', icon_url: 'https://comicvine.gamespot.com/a/uploads/square_small/1/15776/440685-eternaltwilight.jpg' },
           { name: 'Nebula', icon_url: CHAR_ICONS.nebula }
         ],
         content: `Planets are hurled like pebbles as Galactus, Lord Chaos, Master Order, and the Stranger engage Thanos in a war of divine proportions! Overcoming them all, Thanos defeats Eternity itself and ascends to pure astral consciousness.\n\nLeaving his physical shell vacant, the wounded zombie-like Nebula lunges forward and slips the Infinity Gauntlet off his hand!`
@@ -562,7 +562,7 @@ const MARVEL_VOLUMES_CATALOG = [
         default_accent: '#0097A7',
         character_credits: [
           { name: 'Adam Warlock', icon_url: CHAR_ICONS.adamWarlock },
-          { name: 'Living Tribunal', icon_url: CHAR_ICONS.thanos }
+          { name: 'Living Tribunal', icon_url: 'https://comicvine.gamespot.com/a/uploads/square_small/0/77/148172-123031-living-tribunal.jpg' }
         ],
         content: `The Living Tribunal convenes supreme cosmic court to adjudicate Adam Warlock's possession of the Gauntlet, declaring that no single entity may ever wield all six Infinity Gems simultaneously.\n\nWarlock disassembles the Gauntlet, establishing the secret Infinity Watch and distributing each gem to trusted cosmic guardians.`
       },
@@ -589,16 +589,16 @@ const MARVEL_VOLUMES_CATALOG = [
         cover_image: 'https://comicvine.gamespot.com/a/uploads/scale_medium/7/71975/2215810-056.jpg',
         default_accent: '#43A047',
         character_credits: [
-          { name: 'Gamora', icon_url: CHAR_ICONS.thanos },
+          { name: 'Gamora', icon_url: 'https://comicvine.gamespot.com/a/uploads/square_small/12/124259/9357825-ezgif-7-563a93dc1b.jpg' },
           { name: 'Adam Warlock', icon_url: CHAR_ICONS.adamWarlock },
-          { name: 'Pip the Troll', icon_url: CHAR_ICONS.nebula }
+          { name: 'Pip the Troll', icon_url: 'https://comicvine.gamespot.com/a/uploads/square_small/3/31666/2695349-xfact2005246cov_col.jpg' }
         ],
         content: `Returned to mortal form alongside Pip the Troll, the deadliest woman in the galaxy Gamora faces a universe without Thanos' shadow.\n\nA new epoch of cosmic balance commences as the guardians swear an oath to prevent the gems from ever reuniting.`
       }
     ]
   },
   {
-    comicvine_id: 2144,
+    comicvine_id: 2128,
     title: 'The Avengers',
     original_title: 'The Avengers (1963)',
     slug: 'the-avengers-1963',
@@ -616,11 +616,11 @@ const MARVEL_VOLUMES_CATALOG = [
     issues: [
       {
         chapter_number: 1,
-        comicvine_issue_id: 6701,
+        comicvine_issue_id: 6686,
         title: 'The Coming of the Avengers!',
         release_date: '1963-09-01',
         is_preview: true,
-        cover_image: 'https://comicvine.gamespot.com/a/uploads/scale_medium/12/124259/8459983-rco031_1650495781.jpg',
+        cover_image: 'https://comicvine.gamespot.com/a/uploads/scale_medium/11/117763/2464633-avengers001.jpg',
         default_accent: '#E53935',
         character_credits: [
           { name: 'Iron Man', icon_url: CHAR_ICONS.ironMan },
@@ -634,11 +634,11 @@ const MARVEL_VOLUMES_CATALOG = [
       },
       {
         chapter_number: 2,
-        comicvine_issue_id: 6702,
+        comicvine_issue_id: 6779,
         title: 'The Space Phantom',
         release_date: '1963-11-01',
         is_preview: true,
-        cover_image: 'https://comicvine.gamespot.com/a/uploads/scale_medium/0/4/6143-1820-6712-1-g-i-combat.jpg',
+        cover_image: 'https://comicvine.gamespot.com/a/uploads/scale_medium/11/117763/2464636-avengers002.jpg',
         default_accent: '#5E35B1',
         character_credits: [
           { name: 'Iron Man', icon_url: CHAR_ICONS.ironMan },
@@ -649,26 +649,26 @@ const MARVEL_VOLUMES_CATALOG = [
       },
       {
         chapter_number: 3,
-        comicvine_issue_id: 6703,
+        comicvine_issue_id: 6938,
         title: 'The Avengers Meet Sub-Mariner!',
         release_date: '1964-01-01',
         is_preview: false,
-        cover_image: 'https://comicvine.gamespot.com/a/uploads/scale_medium/0/4/6230-1820-6804-1-g-i-combat.jpg',
+        cover_image: 'https://comicvine.gamespot.com/a/uploads/scale_medium/11/117763/2464637-avengers003.jpg',
         default_accent: '#00838F',
         character_credits: [
           { name: 'Hulk', icon_url: CHAR_ICONS.hulk },
-          { name: 'Namor the Sub-Mariner', icon_url: CHAR_ICONS.silverSurfer },
+          { name: 'Namor the Sub-Mariner', icon_url: 'https://comicvine.gamespot.com/a/uploads/square_small/12/124259/7642506-0083aa18cc79f26640e29a8594e2e51e.jpg' },
           { name: 'Thor', icon_url: CHAR_ICONS.thor }
         ],
         content: `Seeking allies against the surface world, Namor discovers the wandering Hulk in the desert, forging a colossal alliance of titans against the remaining Avengers in the rock canyons of Gibraltar.\n\nAs the duel rages, Bruce Banner's transformation falters, sending Namor retreating into oceanic depths and leaving the Avengers in pursuit.`
       },
       {
         chapter_number: 4,
-        comicvine_issue_id: 6704,
+        comicvine_issue_id: 7025,
         title: 'Captain America Joins the Avengers!',
         release_date: '1964-03-01',
         is_preview: false,
-        cover_image: 'https://comicvine.gamespot.com/a/uploads/scale_medium/0/4/6370-1820-6964-1-g-i-combat.jpg',
+        cover_image: 'https://comicvine.gamespot.com/a/uploads/scale_medium/11/117763/2464638-avengers004.jpg',
         default_accent: '#1976D2',
         character_credits: [
           { name: 'Captain America', icon_url: CHAR_ICONS.captainAmerica },
@@ -679,11 +679,11 @@ const MARVEL_VOLUMES_CATALOG = [
       },
       {
         chapter_number: 5,
-        comicvine_issue_id: 6713,
+        comicvine_issue_id: 7106,
         title: 'Invasion of the Lava Men',
         release_date: '1964-05-01',
         is_preview: false,
-        cover_image: 'https://comicvine.gamespot.com/a/uploads/scale_medium/0/4/6447-1820-7045-1-g-i-combat.jpg',
+        cover_image: 'https://comicvine.gamespot.com/a/uploads/scale_medium/11/117763/2464639-avengers005.jpg',
         default_accent: '#D84315',
         character_credits: [
           { name: 'Captain America', icon_url: CHAR_ICONS.captainAmerica },
@@ -694,44 +694,44 @@ const MARVEL_VOLUMES_CATALOG = [
       },
       {
         chapter_number: 6,
-        comicvine_issue_id: 6714,
+        comicvine_issue_id: 7199,
         title: 'Masters of Evil!',
         release_date: '1964-07-01',
         is_preview: false,
-        cover_image: 'https://comicvine.gamespot.com/a/uploads/scale_medium/0/4/6529-1820-7135-1-g-i-combat.jpg',
+        cover_image: 'https://comicvine.gamespot.com/a/uploads/scale_medium/11/117763/2464640-avengers006.jpg',
         default_accent: '#7CB342',
         character_credits: [
-          { name: 'Baron Zemo', icon_url: CHAR_ICONS.captainAmerica },
-          { name: 'Black Knight', icon_url: CHAR_ICONS.ironMan },
-          { name: 'Melter', icon_url: CHAR_ICONS.thor }
+          { name: 'Baron Zemo', icon_url: 'https://comicvine.gamespot.com/a/uploads/square_small/11156/111564182/9796396-zemoimmonenre-size.jpg' },
+          { name: 'Black Knight', icon_url: 'https://comicvine.gamespot.com/a/uploads/square_small/6/67663/5254526-01.jpg' },
+          { name: 'Melter', icon_url: 'https://comicvine.gamespot.com/a/uploads/square_small/12/124259/8115760-morbius_vol_1_5_textless.jpg' }
         ],
         content: `The sinister Nazi scientist Baron Heinrich Zemo discovers his wartime nemesis Captain America is alive, organizing the most dangerous super-villains into the Masters of Evil.\n\nBlanketing New York with Adhesive X, Zemo nearly cements the heroes into immobility before Cap leads a counter-offensive through Wall Street.`
       },
       {
         chapter_number: 7,
-        comicvine_issue_id: 6715,
+        comicvine_issue_id: 7254,
         title: 'Their Darkest Hour',
         release_date: '1964-08-01',
         is_preview: false,
-        cover_image: 'https://comicvine.gamespot.com/a/uploads/scale_medium/0/4/6621-1820-7229-1-g-i-combat.jpg',
+        cover_image: 'https://comicvine.gamespot.com/a/uploads/scale_medium/11/117763/2464641-avengers007.jpg',
         default_accent: '#C2185B',
         character_credits: [
-          { name: 'Enchantress', icon_url: CHAR_ICONS.loki },
-          { name: 'Executioner', icon_url: CHAR_ICONS.thor },
+          { name: 'Enchantress', icon_url: 'https://comicvine.gamespot.com/a/uploads/square_small/12/124259/9314849-large-9836064.jpg' },
+          { name: 'Executioner', icon_url: 'https://comicvine.gamespot.com/a/uploads/square_small/12/124259/9649791-large-1556556.jpg' },
           { name: 'Captain America', icon_url: CHAR_ICONS.captainAmerica }
         ],
         content: `Asgardian exiles the Enchantress and Executioner ally with Zemo, casting a bewitching glamour over Thor to turn him against his teammates.\n\nIron Man's armor sensors crack the sorcerous frequency while Cap engages the Executioner's battleaxe in an unyielding contest of wills.`
       },
       {
         chapter_number: 8,
-        comicvine_issue_id: 6716,
+        comicvine_issue_id: 7302,
         title: 'Kang the Conqueror!',
         release_date: '1964-09-01',
         is_preview: false,
-        cover_image: 'https://comicvine.gamespot.com/a/uploads/scale_medium/0/4/6722-1820-7337-1-g-i-combat.jpg',
+        cover_image: 'https://comicvine.gamespot.com/a/uploads/scale_medium/11/117763/2464642-avengers008.jpg',
         default_accent: '#388E3C',
         character_credits: [
-          { name: 'Kang the Conqueror', icon_url: CHAR_ICONS.doctorDoom },
+          { name: 'Kang the Conqueror', icon_url: 'https://comicvine.gamespot.com/a/uploads/square_small/6/67663/8111353-01.jpg' },
           { name: 'Captain America', icon_url: CHAR_ICONS.captainAmerica },
           { name: 'Iron Man', icon_url: CHAR_ICONS.ironMan }
         ],
@@ -739,28 +739,28 @@ const MARVEL_VOLUMES_CATALOG = [
       },
       {
         chapter_number: 9,
-        comicvine_issue_id: 6717,
+        comicvine_issue_id: 7371,
         title: 'The Coming of Wonder Man!',
         release_date: '1964-10-01',
         is_preview: false,
-        cover_image: 'https://comicvine.gamespot.com/a/uploads/scale_medium/0/4/6836-1820-7456-1-g-i-combat.jpg',
+        cover_image: 'https://comicvine.gamespot.com/a/uploads/scale_medium/11/117763/2464643-avengers009.jpg',
         default_accent: '#F57C00',
         character_credits: [
-          { name: 'Wonder Man (Simon Williams)', icon_url: CHAR_ICONS.ironMan },
-          { name: 'Baron Zemo', icon_url: CHAR_ICONS.captainAmerica }
+          { name: 'Wonder Man (Simon Williams)', icon_url: 'https://comicvine.gamespot.com/a/uploads/square_small/11159/111592040/9311802-img_4496.jpeg' },
+          { name: 'Baron Zemo', icon_url: 'https://comicvine.gamespot.com/a/uploads/square_small/11156/111564182/9796396-zemoimmonenre-size.jpg' }
         ],
         content: `Imbued with ionic energy by Baron Zemo, Simon Williams infiltrates the Avengers under false pretenses to lead them into a fatal trap in the Amazon basin.\n\nMoved by the heroes' nobility and selflessness, Wonder Man defies his evil creator at the cost of his own life, sacrificing himself so the Avengers may live.`
       },
       {
         chapter_number: 10,
-        comicvine_issue_id: 6718,
+        comicvine_issue_id: 7423,
         title: 'The Battle for Avengers Mansion',
         release_date: '1964-11-01',
         is_preview: false,
-        cover_image: 'https://comicvine.gamespot.com/a/uploads/scale_medium/0/4/6941-1820-7586-1-g-i-combat.jpg',
+        cover_image: 'https://comicvine.gamespot.com/a/uploads/scale_medium/11/117763/2464644-avengers010.jpg',
         default_accent: '#455A64',
         character_credits: [
-          { name: 'Immortus', icon_url: CHAR_ICONS.doctorDoom },
+          { name: 'Immortus', icon_url: 'https://comicvine.gamespot.com/a/uploads/square_small/11115/111158055/7196385-immortus02.jpg' },
           { name: 'Captain America', icon_url: CHAR_ICONS.captainAmerica },
           { name: 'Thor', icon_url: CHAR_ICONS.thor }
         ],
@@ -776,9 +776,9 @@ const MARVEL_VOLUMES_CATALOG = [
         default_accent: '#C62828',
         character_credits: [
           { name: 'Captain America', icon_url: CHAR_ICONS.captainAmerica },
-          { name: 'Hawkeye', icon_url: CHAR_ICONS.spiderMan },
-          { name: 'Scarlet Witch', icon_url: CHAR_ICONS.jeanGrey },
-          { name: 'Quicksilver', icon_url: CHAR_ICONS.cyclops }
+          { name: 'Hawkeye', icon_url: 'https://comicvine.gamespot.com/a/uploads/scale_small/0/3133/108921-190878-hawkeye.jpg' },
+          { name: 'Scarlet Witch', icon_url: 'https://comicvine.gamespot.com/a/uploads/scale_small/1/15776/9986552-scarlet_witch.jpg' },
+          { name: 'Quicksilver', icon_url: 'https://comicvine.gamespot.com/a/uploads/scale_small/11/117763/2594178-quicks.png' }
         ],
         content: `A momentous turning point in comic book history! Founding members Thor, Iron Man, Giant-Man, and Wasp step down, leaving Captain America to train three reformed former criminals: Hawkeye, Quicksilver, and Scarlet Witch.\n\nDubbed 'Cap's Kooky Quartet', the untested roster faces public skepticism and earns their stripes in fire.`
       },
@@ -813,7 +813,7 @@ const MARVEL_VOLUMES_CATALOG = [
           { name: 'Thor', icon_url: CHAR_ICONS.thor },
           { name: 'Hank Pym', icon_url: CHAR_ICONS.antMan },
           { name: 'Wasp', icon_url: CHAR_ICONS.wasp },
-          { name: 'Count Nefaria', icon_url: CHAR_ICONS.doctorDoom }
+          { name: 'Count Nefaria', icon_url: null }
         ],
         content: `Seeking to eliminate the Avengers, Italian aristocrat and Maggia mastermind Count Luchino Nefaria lures the team to his ancestral European estate under the guise of a humanitarian benefit.\n\nWhile the heroes sleep under narcotic gas, Nefaria projects life-like illusory duplicates across the globe, framing the Avengers for acts of high treason against the United States. Awakening inside suspended animation chambers, the team must break free and storm Washington to expose the Maggia conspiracy before martial law is declared.`
       },
@@ -827,19 +827,19 @@ const MARVEL_VOLUMES_CATALOG = [
         cover_image: 'https://comicvine.gamespot.com/a/uploads/scale_medium/0/4/11270-2144-11270-1-avengers.jpg',
         default_accent: '#FBC02D',
         character_credits: [
-          { name: 'Power Man (Erik Josten)', icon_url: CHAR_ICONS.thor },
-          { name: 'Enchantress (Amora)', icon_url: CHAR_ICONS.loki },
-          { name: 'Scarlet Witch', icon_url: CHAR_ICONS.jeanGrey },
           { name: 'Captain America', icon_url: CHAR_ICONS.captainAmerica },
-          { name: 'Hawkeye', icon_url: CHAR_ICONS.spiderMan },
-          { name: 'Quicksilver', icon_url: CHAR_ICONS.cyclops }
+          { name: 'Power Man (Erik Josten)', icon_url: null },
+          { name: 'Enchantress (Amora)', icon_url: null },
+          { name: 'Scarlet Witch', icon_url: 'https://comicvine.gamespot.com/a/uploads/scale_small/1/15776/9986552-scarlet_witch.jpg' },
+          { name: 'Hawkeye', icon_url: 'https://comicvine.gamespot.com/a/uploads/scale_small/0/3133/108921-190878-hawkeye.jpg' },
+          { name: 'Quicksilver', icon_url: 'https://comicvine.gamespot.com/a/uploads/scale_small/11/117763/2594178-quicks.png' }
         ],
         content: `Power Man (Erik Josten) makes his explosive debut! Empowered by the Enchantress with the ionic ray machinery of the late Baron Zemo, Power Man frames the Avengers for reckless destruction across the city with deceptive illusions.\n\nManipulated by the Enchantress's cunning tricks, public opinion turns hostile and the City Council orders the Avengers to disband, until Captain America and the team uncover the Maggia conspiracy and fight to clear Earth's Mightiest Heroes.`
       }
     ]
   },
   {
-    comicvine_id: 18861,
+    comicvine_id: 18220,
     title: 'Iron Man: Extremis',
     original_title: 'Iron Man (2005)',
     slug: 'iron-man-extremis',
@@ -857,26 +857,26 @@ const MARVEL_VOLUMES_CATALOG = [
     issues: [
       {
         chapter_number: 1,
-        comicvine_issue_id: 101230,
+        comicvine_issue_id: 108913,
         title: 'Extremis: Part 1 - The Bio-Weapon',
         release_date: '2005-01-01',
         is_preview: true,
-        cover_image: 'https://comicvine.gamespot.com/a/uploads/scale_medium/11161/111615891/9972433-cover.jpg',
+        cover_image: 'https://comicvine.gamespot.com/a/uploads/scale_medium/0/787/114157-18220-108913-1-iron-man.jpg',
         default_accent: '#C62828',
         character_credits: [
           { name: 'Iron Man (Tony Stark)', icon_url: CHAR_ICONS.ironMan },
           { name: 'Maya Hansen', icon_url: CHAR_ICONS.mayaHansen },
-          { name: 'Sal Kennedy', icon_url: CHAR_ICONS.salKennedy }
+          { name: 'Sal Kennedy', icon_url: 'https://comicvine.gamespot.com/a/uploads/square_small/1/11635/334619-36740-sal-kennedy.jpeg' }
         ],
         content: `Documentary filmmaker John Pillinger interviews Tony Stark on the ethics of modern defense manufacturing. Simultaneously, in Bastrop, Texas, an experimental military nanotech serum called Extremis is injected into domestic terrorist Mallen, causing his physiology to mutate violently.\n\nStark receives a panicked emergency transmission from old flame Dr. Maya Hansen: 'Tony... someone stole the serum.'`
       },
       {
         chapter_number: 2,
-        comicvine_issue_id: 101450,
+        comicvine_issue_id: 108914,
         title: 'Extremis: Part 2 - Flashpoint',
         release_date: '2005-02-01',
         is_preview: false,
-        cover_image: 'https://comicvine.gamespot.com/a/uploads/scale_medium/11/118064/4096612-7617155689-11686.jpg',
+        cover_image: 'https://comicvine.gamespot.com/a/uploads/scale_medium/0/787/114159-18220-108914-1-iron-man.jpg',
         default_accent: '#FFB300',
         character_credits: [
           { name: 'Iron Man', icon_url: CHAR_ICONS.ironMan },
@@ -887,11 +887,11 @@ const MARVEL_VOLUMES_CATALOG = [
       },
       {
         chapter_number: 3,
-        comicvine_issue_id: 101680,
+        comicvine_issue_id: 111259,
         title: 'Extremis: Part 3 - Fatal Impact',
         release_date: '2005-04-01',
         is_preview: false,
-        cover_image: 'https://comicvine.gamespot.com/a/uploads/scale_medium/0/4/71924-12054-104922-1-strangers-in-paradis.jpg',
+        cover_image: 'https://comicvine.gamespot.com/a/uploads/scale_medium/6/67663/2188170-03.jpg',
         default_accent: '#E64A19',
         character_credits: [
           { name: 'Iron Man', icon_url: CHAR_ICONS.ironMan },
@@ -901,11 +901,11 @@ const MARVEL_VOLUMES_CATALOG = [
       },
       {
         chapter_number: 4,
-        comicvine_issue_id: 102100,
+        comicvine_issue_id: 111395,
         title: 'Extremis: Part 4 - Rebirth',
         release_date: '2005-06-01',
         is_preview: false,
-        cover_image: 'https://comicvine.gamespot.com/a/uploads/scale_medium/0/4/71925-12054-104923-1-strangers-in-paradis.jpg',
+        cover_image: 'https://comicvine.gamespot.com/a/uploads/scale_medium/0/574/148557-18220-111395-1-iron-man.jpg',
         default_accent: '#0288D1',
         character_credits: [
           { name: 'Tony Stark', icon_url: CHAR_ICONS.ironMan },
@@ -915,11 +915,11 @@ const MARVEL_VOLUMES_CATALOG = [
       },
       {
         chapter_number: 5,
-        comicvine_issue_id: 102500,
+        comicvine_issue_id: 111396,
         title: 'Extremis: Part 5 - The Iron Man Inside',
         release_date: '2005-11-01',
         is_preview: false,
-        cover_image: 'https://comicvine.gamespot.com/a/uploads/scale_medium/0/4/71926-12054-104924-1-strangers-in-paradis.jpg',
+        cover_image: 'https://comicvine.gamespot.com/a/uploads/scale_medium/0/574/148558-18220-111396-1-iron-man.jpg',
         default_accent: '#D32F2F',
         character_credits: [
           { name: 'Iron Man', icon_url: CHAR_ICONS.ironMan },
@@ -929,11 +929,11 @@ const MARVEL_VOLUMES_CATALOG = [
       },
       {
         chapter_number: 6,
-        comicvine_issue_id: 102900,
+        comicvine_issue_id: 111397,
         title: 'Extremis: Part 6 - Apotheosis',
         release_date: '2006-04-01',
         is_preview: false,
-        cover_image: 'https://comicvine.gamespot.com/a/uploads/scale_medium/0/4/71927-12054-104925-1-strangers-in-paradis.jpg',
+        cover_image: 'https://comicvine.gamespot.com/a/uploads/scale_medium/11112/111129651/5756915-200605%20iron%20man%20%20-%20unknown%20%236%20-%20page%201.jpg',
         default_accent: '#FBC02D',
         character_credits: [
           { name: 'Iron Man', icon_url: CHAR_ICONS.ironMan },
@@ -943,11 +943,11 @@ const MARVEL_VOLUMES_CATALOG = [
       },
       {
         chapter_number: 7,
-        comicvine_issue_id: 103200,
+        comicvine_issue_id: 108247,
         title: 'Execute Program: Part 1',
         release_date: '2006-06-01',
         is_preview: false,
-        cover_image: 'https://comicvine.gamespot.com/a/uploads/scale_medium/0/4/71928-12054-104926-1-strangers-in-paradis.jpg',
+        cover_image: 'https://comicvine.gamespot.com/a/uploads/scale_medium/6/67663/2188171-07.jpg',
         default_accent: '#512DA8',
         character_credits: [
           { name: 'Iron Man', icon_url: CHAR_ICONS.ironMan },
@@ -957,50 +957,50 @@ const MARVEL_VOLUMES_CATALOG = [
       },
       {
         chapter_number: 8,
-        comicvine_issue_id: 103500,
+        comicvine_issue_id: 108311,
         title: 'Execute Program: Part 2',
         release_date: '2006-08-01',
         is_preview: false,
-        cover_image: 'https://comicvine.gamespot.com/a/uploads/scale_medium/0/4/71929-12054-104927-1-strangers-in-paradis.jpg',
+        cover_image: 'https://comicvine.gamespot.com/a/uploads/scale_medium/6/67663/2188172-08.jpg',
         default_accent: '#00796B',
         character_credits: [
           { name: 'Iron Man', icon_url: CHAR_ICONS.ironMan },
-          { name: 'Sentry', icon_url: CHAR_ICONS.captainAmerica }
+          { name: 'Sentry', icon_url: 'https://comicvine.gamespot.com/a/uploads/square_small/1/10812/1487325-val_hd.jpg' }
         ],
         content: `The hijacked armor executes a brutal hit on foreign targets, turning Tony into an international fugitive from his own Avengers team.\n\nThe Sentry intercepts Iron Man in high orbit, leading to an extraordinary confrontation where Tony must disable his own life support.`
       },
       {
         chapter_number: 9,
-        comicvine_issue_id: 103800,
+        comicvine_issue_id: 108349,
         title: 'Execute Program: Part 3',
         release_date: '2006-10-01',
         is_preview: false,
-        cover_image: 'https://comicvine.gamespot.com/a/uploads/scale_medium/0/4/71930-12054-104928-1-strangers-in-paradis.jpg',
+        cover_image: 'https://comicvine.gamespot.com/a/uploads/scale_medium/6/67663/2188173-09.jpg',
         default_accent: '#C2185B',
         character_credits: [
           { name: 'Iron Man', icon_url: CHAR_ICONS.ironMan },
-          { name: 'Doctor Strange', icon_url: CHAR_ICONS.reedRichards }
+          { name: 'Doctor Strange', icon_url: 'https://comicvine.gamespot.com/a/uploads/square_small/12/124259/8753901-ezgif-3-69b95d2d1b.jpg' }
         ],
         content: `Tony traces the ghost signals deep into the Russian cyber underground, finding that an old Cold War grievance has weaponized his neural Extremis handshake.\n\nWith Doctor Strange shielding his conscious mind, Tony purges the malicious code before it can detonate nuclear silos.`
       },
       {
         chapter_number: 10,
-        comicvine_issue_id: 104100,
+        comicvine_issue_id: 108350,
         title: 'The Director of S.H.I.E.L.D.',
         release_date: '2007-02-01',
         is_preview: false,
-        cover_image: 'https://comicvine.gamespot.com/a/uploads/scale_medium/0/4/71931-12054-104929-1-strangers-in-paradis.jpg',
+        cover_image: 'https://comicvine.gamespot.com/a/uploads/scale_medium/6/67663/2188174-10.jpg',
         default_accent: '#37474F',
         character_credits: [
           { name: 'Tony Stark', icon_url: CHAR_ICONS.ironMan },
-          { name: 'Nick Fury', icon_url: CHAR_ICONS.captainAmerica }
+          { name: 'Nick Fury', icon_url: 'https://comicvine.gamespot.com/a/uploads/square_small/0/3848/5808855-stl025079.jpg' }
         ],
         content: `Armed with his superhuman techno-organic upgrade, Tony Stark accepts the directorship of S.H.I.E.L.D., restructuring global defense around preventative technological oversight.\n\nThe dawn of a modern, armored era for the Marvel Universe.`
       }
     ]
   },
   {
-    comicvine_id: 2140,
+    comicvine_id: 2133,
     title: 'Uncanny X-Men',
     original_title: 'The X-Men (1963)',
     slug: 'uncanny-x-men-1963',
@@ -1018,11 +1018,11 @@ const MARVEL_VOLUMES_CATALOG = [
     issues: [
       {
         chapter_number: 1,
-        comicvine_issue_id: 6710,
+        comicvine_issue_id: 6694,
         title: 'X-Men #1: Mutants Assemble',
         release_date: '1963-09-01',
         is_preview: true,
-        cover_image: 'https://comicvine.gamespot.com/a/uploads/scale_medium/12/124259/9476911-large-3730198.jpg',
+        cover_image: 'https://comicvine.gamespot.com/a/uploads/scale_medium/0/5344/1355017-uxm_v1_001_01.jpg',
         default_accent: '#FBC02D',
         character_credits: [
           { name: 'Cyclops', icon_url: CHAR_ICONS.cyclops },
@@ -1037,14 +1037,14 @@ const MARVEL_VOLUMES_CATALOG = [
       },
       {
         chapter_number: 2,
-        comicvine_issue_id: 6711,
+        comicvine_issue_id: 6787,
         title: 'No One Can Stop the Vanisher!',
         release_date: '1963-11-01',
         is_preview: true,
-        cover_image: 'https://comicvine.gamespot.com/a/uploads/scale_medium/11/117763/2930260-talestoastonish050.jpg',
+        cover_image: 'https://comicvine.gamespot.com/a/uploads/scale_medium/0/5344/1355032-01.jpg',
         default_accent: '#7B1FA2',
         character_credits: [
-          { name: 'Vanisher', icon_url: CHAR_ICONS.cyclops },
+          { name: 'Vanisher', icon_url: 'https://comicvine.gamespot.com/a/uploads/square_small/11119/111198274/4251552-vanisher.jpg' },
           { name: 'Professor X', icon_url: CHAR_ICONS.professorX },
           { name: 'Cyclops', icon_url: CHAR_ICONS.cyclops }
         ],
@@ -1052,14 +1052,14 @@ const MARVEL_VOLUMES_CATALOG = [
       },
       {
         chapter_number: 3,
-        comicvine_issue_id: 6712,
+        comicvine_issue_id: 6946,
         title: 'The Blob!',
         release_date: '1964-01-01',
         is_preview: false,
-        cover_image: 'https://comicvine.gamespot.com/a/uploads/scale_medium/11/117763/2930269-talestoastonish051.jpg',
+        cover_image: 'https://comicvine.gamespot.com/a/uploads/scale_medium/0/5344/1355038-01.jpg',
         default_accent: '#E64A19',
         character_credits: [
-          { name: 'Blob (Fred Dukes)', icon_url: CHAR_ICONS.sandman },
+          { name: 'Blob (Fred Dukes)', icon_url: 'https://comicvine.gamespot.com/a/uploads/square_small/0/3125/2213755-fred1.jpg' },
           { name: 'Professor X', icon_url: CHAR_ICONS.professorX },
           { name: 'Beast', icon_url: CHAR_ICONS.beast }
         ],
@@ -1067,27 +1067,27 @@ const MARVEL_VOLUMES_CATALOG = [
       },
       {
         chapter_number: 4,
-        comicvine_issue_id: 6720,
+        comicvine_issue_id: 7032,
         title: 'The Brotherhood of Evil Mutants!',
         release_date: '1964-03-01',
         is_preview: false,
-        cover_image: 'https://comicvine.gamespot.com/a/uploads/scale_medium/11/117763/2930271-talestoastonish052.jpg',
+        cover_image: 'https://comicvine.gamespot.com/a/uploads/scale_medium/0/5344/1356279-01.jpg',
         default_accent: '#D32F2F',
         character_credits: [
           { name: 'Magneto', icon_url: CHAR_ICONS.magneto },
-          { name: 'Quicksilver', icon_url: CHAR_ICONS.cyclops },
-          { name: 'Scarlet Witch', icon_url: CHAR_ICONS.jeanGrey },
-          { name: 'Toad', icon_url: CHAR_ICONS.beast }
+          { name: 'Quicksilver', icon_url: 'https://comicvine.gamespot.com/a/uploads/scale_small/11/117763/2594178-quicks.png' },
+          { name: 'Scarlet Witch', icon_url: 'https://comicvine.gamespot.com/a/uploads/scale_small/1/15776/9986552-scarlet_witch.jpg' },
+          { name: 'Toad', icon_url: 'https://comicvine.gamespot.com/a/uploads/square_small/12/124259/7040861-toad.jpg' }
         ],
         content: `Magneto annexes the South American nation of Santo Marco with his newly assembled Brotherhood of Evil Mutants: Toad, Mastermind, Quicksilver, and Scarlet Witch.\n\nCyclops unleashes an optic blast to disarm Magneto's nuclear detonation switch while Wanda Maximoff begins questioning her master's cruelty.`
       },
       {
         chapter_number: 5,
-        comicvine_issue_id: 6721,
+        comicvine_issue_id: 7114,
         title: 'Trapped by the Brotherhood!',
         release_date: '1964-05-01',
         is_preview: false,
-        cover_image: 'https://comicvine.gamespot.com/a/uploads/scale_medium/11/117763/2930275-talestoastonish053.jpg',
+        cover_image: 'https://comicvine.gamespot.com/a/uploads/scale_medium/0/5344/1357837-01.jpg',
         default_accent: '#C2185B',
         character_credits: [
           { name: 'Magneto', icon_url: CHAR_ICONS.magneto },
@@ -1097,14 +1097,14 @@ const MARVEL_VOLUMES_CATALOG = [
       },
       {
         chapter_number: 6,
-        comicvine_issue_id: 6722,
+        comicvine_issue_id: 7207,
         title: 'Sub-Mariner Joins the Evil Mutants?',
         release_date: '1964-07-01',
         is_preview: false,
-        cover_image: 'https://comicvine.gamespot.com/a/uploads/scale_medium/0/4/6475-2008-7073-1-tales-to-astonish.jpg',
+        cover_image: 'https://comicvine.gamespot.com/a/uploads/scale_medium/0/5344/1376114-01.jpg',
         default_accent: '#00838F',
         character_credits: [
-          { name: 'Namor', icon_url: CHAR_ICONS.silverSurfer },
+          { name: 'Namor', icon_url: 'https://comicvine.gamespot.com/a/uploads/square_small/0/4/29367-4406-32633-1-namor-the-sub-marin.jpg' },
           { name: 'Magneto', icon_url: CHAR_ICONS.magneto },
           { name: 'Jean Grey', icon_url: CHAR_ICONS.jeanGrey }
         ],
@@ -1112,14 +1112,14 @@ const MARVEL_VOLUMES_CATALOG = [
       },
       {
         chapter_number: 7,
-        comicvine_issue_id: 6723,
+        comicvine_issue_id: 7310,
         title: 'The Return of the Blob',
         release_date: '1964-09-01',
         is_preview: false,
-        cover_image: 'https://comicvine.gamespot.com/a/uploads/scale_medium/0/4/6510-2008-7113-1-tales-to-astonish.jpg',
+        cover_image: 'https://comicvine.gamespot.com/a/uploads/scale_medium/0/5344/1377294-01.jpg',
         default_accent: '#558B2F',
         character_credits: [
-          { name: 'Blob', icon_url: CHAR_ICONS.sandman },
+          { name: 'Blob', icon_url: 'https://comicvine.gamespot.com/a/uploads/square_small/11161/111612243/9489486-6848530197-GYGTkWUXUAAQ-sn.jpg' },
           { name: 'Magneto', icon_url: CHAR_ICONS.magneto },
           { name: 'Beast', icon_url: CHAR_ICONS.beast }
         ],
@@ -1127,25 +1127,25 @@ const MARVEL_VOLUMES_CATALOG = [
       },
       {
         chapter_number: 8,
-        comicvine_issue_id: 6724,
+        comicvine_issue_id: 7431,
         title: 'Unus the Untouchable!',
         release_date: '1964-11-01',
         is_preview: false,
-        cover_image: 'https://comicvine.gamespot.com/a/uploads/scale_medium/8/84205/4085972-tales_to_astonish_vol_1_56.jpg',
+        cover_image: 'https://comicvine.gamespot.com/a/uploads/scale_medium/0/5344/1377429-01.jpg',
         default_accent: '#EF6C00',
         character_credits: [
-          { name: 'Unus the Untouchable', icon_url: CHAR_ICONS.sandman },
+          { name: 'Unus the Untouchable', icon_url: 'https://comicvine.gamespot.com/a/uploads/square_small/11/111746/7129223-gunther_bain_%28earth-616%29_from_all-new_x-men_vol_2_19_001.jpg' },
           { name: 'Beast', icon_url: CHAR_ICONS.beast }
         ],
         content: `A mutant capable of generating an impenetrable force field begins robbing banks with impunity. Hank McCoy builds a specialized ray that unintentionally amplifies Unus' shield to monstrous proportions.\n\nTrapped inside a bubble where air and food cannot penetrate, Unus is forced to yield and swear off villainy.`
       },
       {
         chapter_number: 9,
-        comicvine_issue_id: 6725,
+        comicvine_issue_id: 7559,
         title: 'Enter, the Avengers!',
         release_date: '1965-01-01',
         is_preview: false,
-        cover_image: 'https://comicvine.gamespot.com/a/uploads/scale_medium/0/4/6599-2008-7206-1-tales-to-astonish.jpg',
+        cover_image: 'https://comicvine.gamespot.com/a/uploads/scale_medium/0/5344/1377485-01.jpg',
         default_accent: '#283593',
         character_credits: [
           { name: 'Thor', icon_url: CHAR_ICONS.thor },
@@ -1156,14 +1156,14 @@ const MARVEL_VOLUMES_CATALOG = [
       },
       {
         chapter_number: 10,
-        comicvine_issue_id: 6726,
+        comicvine_issue_id: 7674,
         title: 'The Coming of Ka-Zar!',
         release_date: '1965-03-01',
         is_preview: false,
-        cover_image: 'https://comicvine.gamespot.com/a/uploads/scale_medium/8/84205/4085988-tal5.4069a.jpg',
+        cover_image: 'https://comicvine.gamespot.com/a/uploads/scale_medium/0/4/7019-2133-7674-1-x-men.jpg',
         default_accent: '#1B5E20',
         character_credits: [
-          { name: 'Ka-Zar', icon_url: CHAR_ICONS.wolverine },
+          { name: 'Ka-Zar', icon_url: 'https://comicvine.gamespot.com/a/uploads/square_small/1/15776/10147061-ka-zar.jpg' },
           { name: 'Cyclops', icon_url: CHAR_ICONS.cyclops },
           { name: 'Jean Grey', icon_url: CHAR_ICONS.jeanGrey }
         ],
@@ -1226,7 +1226,7 @@ const MARVEL_VOLUMES_CATALOG = [
         default_accent: '#C62828',
         character_credits: [
           { name: 'Thor', icon_url: CHAR_ICONS.thor },
-          { name: 'Shadrak', icon_url: CHAR_ICONS.loki }
+          { name: 'Shadrak', icon_url: 'https://comicvine.gamespot.com/a/uploads/square_small/0/5344/2828232-shadrak_01.jpg' }
         ],
         content: `Thor visits Omnipotence City, the celestial repository of all divine records, searching the endless archives for evidence of surviving pantheons.\n\nHe discovers that hundreds of divine libraries have been expunged in blood, and only one shivering divinity remains alive: Shadrak, the god of holy tears.`
       },
@@ -1267,9 +1267,9 @@ const MARVEL_VOLUMES_CATALOG = [
         cover_image: 'https://comicvine.gamespot.com/a/uploads/scale_medium/2/28391/2713365-133.jpg',
         default_accent: '#1565C0',
         character_credits: [
-          { name: 'Young Thor', icon_url: CHAR_ICONS.thor },
+          { name: 'Young Thor', icon_url: 'https://comicvine.gamespot.com/a/uploads/square_small/6/67663/4412560-01.jpg' },
           { name: 'Avenger Thor', icon_url: CHAR_ICONS.thor },
-          { name: 'King Thor (Old All-Father)', icon_url: CHAR_ICONS.thor }
+          { name: 'King Thor (Old All-Father)', icon_url: 'https://comicvine.gamespot.com/a/uploads/square_small/6/67663/7284905-01.jpg' }
         ],
         content: `At the desolate end of time, King Thor rules over an empty, dying Asgard. Thrown across temporal streams, Avenger Thor and Young Thor arrive at the fortress of the ruined future!\n\nThree generations of the God of Thunder stand side by side against Gorr's apocalyptic armada.`
       },
@@ -1283,7 +1283,7 @@ const MARVEL_VOLUMES_CATALOG = [
         default_accent: '#455A64',
         character_credits: [
           { name: 'Thor', icon_url: CHAR_ICONS.thor },
-          { name: 'King Thor', icon_url: CHAR_ICONS.thor }
+          { name: 'King Thor', icon_url: 'https://comicvine.gamespot.com/a/uploads/square_small/6/67663/6799266-10.jpg' }
         ],
         content: `The three Thors lead a slave uprising of surviving gods working the mines of the Godbomb, fighting with bare fists and mining pickaxes.\n\nGorr tortures Young Thor, taunting the All-Father that his prayers for salvation will never be answered.`
       },
@@ -1296,7 +1296,7 @@ const MARVEL_VOLUMES_CATALOG = [
         cover_image: 'https://comicvine.gamespot.com/a/uploads/scale_medium/2/28391/2713369-135.jpg',
         default_accent: '#0288D1',
         character_credits: [
-          { name: 'King Thor', icon_url: CHAR_ICONS.thor },
+          { name: 'King Thor', icon_url: 'https://comicvine.gamespot.com/a/uploads/square_small/6/67663/6799266-10.jpg' },
           { name: 'Avenger Thor', icon_url: CHAR_ICONS.thor }
         ],
         content: `King Thor channels the full cosmic power of the Thor-Force through both Mjolnirs, creating an acoustic shockwave that reverberates across three timelines.\n\nThe core of the Godbomb begins its final, unstoppable firing countdown.`
@@ -1332,7 +1332,7 @@ const MARVEL_VOLUMES_CATALOG = [
     ]
   },
   {
-    comicvine_id: 4208,
+    comicvine_id: 3352,
     title: 'Secret Wars',
     original_title: 'Marvel Super Heroes Secret Wars (1984)',
     slug: 'secret-wars-1984',
@@ -1350,11 +1350,11 @@ const MARVEL_VOLUMES_CATALOG = [
     issues: [
       {
         chapter_number: 1,
-        comicvine_issue_id: 24190,
+        comicvine_issue_id: 57504,
         title: 'The War Begins',
         release_date: '1984-05-01',
         is_preview: true,
-        cover_image: 'https://comicvine.gamespot.com/a/uploads/scale_small/11161/111615891/10169914-cover.jpg',
+        cover_image: 'https://comicvine.gamespot.com/a/uploads/scale_medium/11/117763/2407772-marvelsuperheroessecretwars01.jpg',
         default_accent: '#C62828',
         character_credits: [
           { name: 'Beyonder', icon_url: CHAR_ICONS.beyonder },
@@ -1366,11 +1366,11 @@ const MARVEL_VOLUMES_CATALOG = [
       },
       {
         chapter_number: 2,
-        comicvine_issue_id: 24250,
+        comicvine_issue_id: 140126,
         title: 'Prisoners of War!',
-        release_date: '1984-06-01',
+        release_date: '2008-12-01',
         is_preview: true,
-        cover_image: 'https://comicvine.gamespot.com/a/uploads/scale_medium/6/67663/2754348-04_cropped.jpg',
+        cover_image: 'https://comicvine.gamespot.com/a/uploads/scale_medium/6/67663/2170083-05.jpg',
         default_accent: '#2E7D32',
         character_credits: [
           { name: 'Doctor Doom', icon_url: CHAR_ICONS.doctorDoom },
@@ -1381,26 +1381,26 @@ const MARVEL_VOLUMES_CATALOG = [
       },
       {
         chapter_number: 3,
-        comicvine_issue_id: 24310,
+        comicvine_issue_id: 57506,
         title: 'Tempest Without, Battle Within',
         release_date: '1984-07-01',
         is_preview: false,
-        cover_image: 'https://comicvine.gamespot.com/a/uploads/scale_medium/6/67663/2754349-03_cropped.jpg',
+        cover_image: 'https://comicvine.gamespot.com/a/uploads/scale_medium/11/117763/2407778-marvelsuperheroessecretwars03.jpg',
         default_accent: '#1565C0',
         character_credits: [
           { name: 'Thor', icon_url: CHAR_ICONS.thor },
           { name: 'Hulk', icon_url: CHAR_ICONS.hulk },
-          { name: 'Titania', icon_url: CHAR_ICONS.wolverine }
+          { name: 'Titania', icon_url: 'https://comicvine.gamespot.com/a/uploads/square_small/11146/111464511/8635835-mary_macpherran_%28earth-616%29_from_she-hulk_vol_4_1_001.jpg' }
         ],
         content: `Doom discovers high-tech laboratory apparatus on Battleworld, using bio-infusion chambers to grant ordinary runaway women supreme strength, creating Titania and Volcana.\n\nA colossal storm ravages the mountains as the villains launch a surprise raid on the heroes' headquarters.`
       },
       {
         chapter_number: 4,
-        comicvine_issue_id: 24370,
+        comicvine_issue_id: 57507,
         title: 'Situation: Hopeless!',
         release_date: '1984-08-01',
         is_preview: false,
-        cover_image: 'https://comicvine.gamespot.com/a/uploads/scale_medium/6/67663/2754346-02_cropped.jpg',
+        cover_image: 'https://comicvine.gamespot.com/a/uploads/scale_medium/11/117763/2407779-marvelsuperheroessecretwars04.jpg',
         default_accent: '#2E7D32',
         character_credits: [
           { name: 'Hulk', icon_url: CHAR_ICONS.hulk },
@@ -1411,11 +1411,11 @@ const MARVEL_VOLUMES_CATALOG = [
       },
       {
         chapter_number: 5,
-        comicvine_issue_id: 24430,
+        comicvine_issue_id: 57508,
         title: 'The Battle of the Four Armies',
         release_date: '1984-09-01',
         is_preview: false,
-        cover_image: 'https://comicvine.gamespot.com/a/uploads/scale_medium/6/67663/2754347-01_cropped.jpg',
+        cover_image: 'https://comicvine.gamespot.com/a/uploads/scale_medium/11/117763/2407780-marvelsuperheroessecretwars05.jpg',
         default_accent: '#F57C00',
         character_credits: [
           { name: 'Captain America', icon_url: CHAR_ICONS.captainAmerica },
@@ -1426,11 +1426,11 @@ const MARVEL_VOLUMES_CATALOG = [
       },
       {
         chapter_number: 6,
-        comicvine_issue_id: 24490,
+        comicvine_issue_id: 57509,
         title: 'A Little Death...',
         release_date: '1984-10-01',
         is_preview: false,
-        cover_image: 'https://comicvine.gamespot.com/a/uploads/scale_medium/6/67663/2754348-04_cropped.jpg',
+        cover_image: 'https://comicvine.gamespot.com/a/uploads/scale_medium/11/117763/2407781-marvelsuperheroessecretwars06.jpg',
         default_accent: '#5E35B1',
         character_credits: [
           { name: 'Wasp', icon_url: CHAR_ICONS.wasp },
@@ -1441,11 +1441,11 @@ const MARVEL_VOLUMES_CATALOG = [
       },
       {
         chapter_number: 7,
-        comicvine_issue_id: 24550,
+        comicvine_issue_id: 57510,
         title: 'Berserk!',
         release_date: '1984-11-01',
         is_preview: false,
-        cover_image: 'https://comicvine.gamespot.com/a/uploads/scale_medium/6/67663/2754349-03_cropped.jpg',
+        cover_image: 'https://comicvine.gamespot.com/a/uploads/scale_medium/11/117763/2407815-marvelsuperheroessecretwars07.jpg',
         default_accent: '#D32F2F',
         character_credits: [
           { name: 'Captain America', icon_url: CHAR_ICONS.captainAmerica },
@@ -1456,11 +1456,11 @@ const MARVEL_VOLUMES_CATALOG = [
       },
       {
         chapter_number: 8,
-        comicvine_issue_id: 24610,
+        comicvine_issue_id: 57511,
         title: 'Invasion of the Black Costume!',
         release_date: '1984-12-01',
         is_preview: false,
-        cover_image: 'https://comicvine.gamespot.com/a/uploads/scale_medium/6/67663/2754346-02_cropped.jpg',
+        cover_image: 'https://comicvine.gamespot.com/a/uploads/scale_medium/11/117763/2407783-marvelsuperheroessecretwars08.jpg',
         default_accent: '#212121',
         character_credits: [
           { name: 'Spider-Man (Black Suit)', icon_url: CHAR_ICONS.spiderMan },
@@ -1471,14 +1471,14 @@ const MARVEL_VOLUMES_CATALOG = [
       },
       {
         chapter_number: 9,
-        comicvine_issue_id: 24670,
+        comicvine_issue_id: 57512,
         title: 'Speedball of the Gods',
         release_date: '1985-01-01',
         is_preview: false,
-        cover_image: 'https://comicvine.gamespot.com/a/uploads/scale_medium/6/67663/2754347-01_cropped.jpg',
+        cover_image: 'https://comicvine.gamespot.com/a/uploads/scale_medium/11/117763/2407784-marvelsuperheroessecretwars09.jpg',
         default_accent: '#8E24AA',
         character_credits: [
-          { name: 'Galactus', icon_url: CHAR_ICONS.silverSurfer },
+          { name: 'Galactus', icon_url: 'https://comicvine.gamespot.com/a/uploads/square_small/11112/111121983/6106786-9280042005-image_gallery' },
           { name: 'Reed Richards', icon_url: CHAR_ICONS.reedRichards },
           { name: 'Doctor Doom', icon_url: CHAR_ICONS.doctorDoom }
         ],
@@ -1486,11 +1486,11 @@ const MARVEL_VOLUMES_CATALOG = [
       },
       {
         chapter_number: 10,
-        comicvine_issue_id: 24730,
+        comicvine_issue_id: 57513,
         title: 'The Power and the Pride',
         release_date: '1985-02-01',
         is_preview: false,
-        cover_image: 'https://comicvine.gamespot.com/a/uploads/scale_medium/11183/111836101/10070612-40-1083.jpg',
+        cover_image: 'https://comicvine.gamespot.com/a/uploads/scale_medium/11/117763/2407785-marvelsuperheroessecretwars10.jpg',
         default_accent: '#FDD835',
         character_credits: [
           { name: 'Doctor Doom (God Doom)', icon_url: CHAR_ICONS.doctorDoom },
@@ -1501,11 +1501,11 @@ const MARVEL_VOLUMES_CATALOG = [
       },
       {
         chapter_number: 11,
-        comicvine_issue_id: 24790,
+        comicvine_issue_id: 57514,
         title: '...And Doom Shall Save the World?',
         release_date: '1985-03-01',
         is_preview: false,
-        cover_image: 'https://comicvine.gamespot.com/a/uploads/scale_medium/6/67663/2754348-04_cropped.jpg',
+        cover_image: 'https://comicvine.gamespot.com/a/uploads/scale_medium/11/117763/2407786-marvelsuperheroessecretwars11.jpg',
         default_accent: '#3949AB',
         character_credits: [
           { name: 'Doctor Doom', icon_url: CHAR_ICONS.doctorDoom },
@@ -1515,11 +1515,11 @@ const MARVEL_VOLUMES_CATALOG = [
       },
       {
         chapter_number: 12,
-        comicvine_issue_id: 24850,
+        comicvine_issue_id: 57515,
         title: '...Nothing to Fear!',
         release_date: '1985-04-01',
         is_preview: false,
-        cover_image: 'https://comicvine.gamespot.com/a/uploads/scale_medium/6/67663/2754349-03_cropped.jpg',
+        cover_image: 'https://comicvine.gamespot.com/a/uploads/scale_medium/11/117763/2407787-marvelsuperheroessecretwars12.jpg',
         default_accent: '#C2185B',
         character_credits: [
           { name: 'Beyonder', icon_url: CHAR_ICONS.beyonder },
@@ -1541,7 +1541,7 @@ function generateChapterPages(coverUrl, title, chapterNum) {
   for (let i = 1; i <= 6; i++) {
     pages.push({
       page_number: i,
-      image_url: coverUrl,
+      image_url: coverUrl || '/placeholder-cover.svg',
       caption: `${title} - Chapter ${chapterNum} (Page ${i}/6)`
     });
   }
@@ -1667,7 +1667,7 @@ async function seedComicVine() {
     if (vol.issues && vol.issues.length > 0) {
       console.log(`   [+] Processing ${vol.issues.length} chapters for "${story.title}"...`);
       for (const issue of vol.issues) {
-        const issueCover = issue.cover_image || coverImage;
+        const issueCover = (issue.cover_image && typeof issue.cover_image === 'string' && issue.cover_image.trim()) ? issue.cover_image.trim() : null;
         const pages = generateChapterPages(issueCover, story.title, issue.chapter_number);
 
         // Extract vibrant accent color

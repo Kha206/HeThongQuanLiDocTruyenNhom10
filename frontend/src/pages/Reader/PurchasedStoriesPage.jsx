@@ -135,7 +135,7 @@ const PurchasedStoriesPage = () => {
                       src={story.cover_image}
                       alt={story.title}
                       className="w-full h-full object-cover transition-transform duration-500 group-hover:scale-105"
-                      fallbackSrc="https://comicvine.gamespot.com/a/uploads/scale_medium/0/394/78670-5533-105342-1-amazing-fantasy.jpg"
+                      fallbackSrc="/placeholder-cover.svg"
                     />
 
                     <div className="absolute top-3 right-3 bg-emerald-500/90 text-white text-[10px] font-extrabold uppercase px-2.5 py-1 rounded-full shadow-lg backdrop-blur-sm">

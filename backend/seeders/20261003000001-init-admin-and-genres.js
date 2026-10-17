@@ -13,7 +13,7 @@ module.exports = {
       password: hashedPassword,
       full_name: 'Marvel Chief Administrator',
       role: 'admin',
-      avatar: 'https://avatar.iran.liara.run/public/boy?username=marvel_admin',
+      avatar: null,
       created_at: new Date(),
       updated_at: new Date()
     }], {});

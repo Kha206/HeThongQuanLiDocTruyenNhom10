@@ -7,3 +7,7 @@ build/
 .vscode/
 .idea/
 SPEC*.md
+
+backend/scripts/inspect*.js
+backend/scripts/verify*.js
+backend/uploads/

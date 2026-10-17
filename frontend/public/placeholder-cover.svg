@@ -1,0 +1,66 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 400 600" width="400" height="600">
+  <defs>
+    <linearGradient id="bgGrad" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" stop-color="#16161F"/>
+      <stop offset="50%" stop-color="#0F0F14"/>
+      <stop offset="100%" stop-color="#0A0A0D"/>
+    </linearGradient>
+    <linearGradient id="redGrad" x1="0%" y1="0%" x2="100%" y2="0%">
+      <stop offset="0%" stop-color="#E23636"/>
+      <stop offset="100%" stop-color="#ED1D24"/>
+    </linearGradient>
+    <linearGradient id="glowGrad" x1="0%" y1="100%" x2="100%" y2="0%">
+      <stop offset="0%" stop-color="#ED1D24" stop-opacity="0.15"/>
+      <stop offset="100%" stop-color="#4D6FFF" stop-opacity="0.05"/>
+    </linearGradient>
+    <pattern id="halftone" x="0" y="0" width="16" height="16" patternUnits="userSpaceOnUse">
+      <circle cx="8" cy="8" r="1.5" fill="#ffffff" fill-opacity="0.04"/>
+    </pattern>
+  </defs>
+
+  <!-- Background -->
+  <rect width="400" height="600" fill="url(#bgGrad)"/>
+  <rect width="400" height="600" fill="url(#glowGrad)"/>
+  <rect width="400" height="600" fill="url(#halftone)"/>
+
+  <!-- Border Frame -->
+  <rect x="12" y="12" width="376" height="576" rx="8" fill="none" stroke="#2A2A38" stroke-width="2"/>
+  <rect x="16" y="16" width="368" height="568" rx="6" fill="none" stroke="#ED1D24" stroke-width="1" stroke-opacity="0.3"/>
+
+  <!-- Marvel Banner Box -->
+  <g transform="translate(130, 45)">
+    <rect width="140" height="46" rx="4" fill="#ED1D24"/>
+    <text x="70" y="32" font-family="'Impact', 'Arial Black', sans-serif" font-size="28" font-weight="900" fill="#FFFFFF" text-anchor="middle" letter-spacing="1.5">MARVEL</text>
+  </g>
+
+  <!-- Comic Art Illustration Box -->
+  <g transform="translate(60, 150)">
+    <rect width="280" height="300" rx="12" fill="#1A1A24" stroke="#2E2E40" stroke-width="1.5"/>
+    <rect width="280" height="300" rx="12" fill="url(#halftone)"/>
+    
+    <!-- Comic Book Symbol -->
+    <path d="M90 100 L140 70 L190 100 L190 220 L140 190 L90 220 Z" fill="#242434" stroke="#ED1D24" stroke-width="2" stroke-linejoin="round"/>
+    <path d="M140 70 L140 190" stroke="#ED1D24" stroke-width="2"/>
+    <path d="M90 100 L140 130 L190 100" stroke="#ED1D24" stroke-width="2" stroke-dasharray="4,4"/>
+
+    <!-- Sparks / Energy Lines -->
+    <path d="M140 120 L155 145 L145 147 L160 175 L135 152 L143 150 Z" fill="#ED1D24"/>
+
+    <!-- Subtle Label -->
+    <text x="140" y="270" font-family="'Outfit', 'Segoe UI', sans-serif" font-size="12" font-weight="600" fill="#9999AA" text-anchor="middle" letter-spacing="2">COMIC ARCHIVE</text>
+  </g>
+
+  <!-- Footer Tag -->
+  <text x="200" y="500" font-family="'Outfit', 'Segoe UI', sans-serif" font-size="15" font-weight="700" fill="#FFFFFF" text-anchor="middle" letter-spacing="1">MARVEL COMICS</text>
+  <text x="200" y="525" font-family="'Outfit', 'Segoe UI', sans-serif" font-size="11" font-weight="400" fill="#777788" text-anchor="middle" letter-spacing="0.5">Bản Quyền Vũ Trụ Điện Ảnh</text>
+
+  <!-- Corner Deco -->
+  <line x1="20" y1="20" x2="35" y2="20" stroke="#ED1D24" stroke-width="3"/>
+  <line x1="20" y1="20" x2="20" y2="35" stroke="#ED1D24" stroke-width="3"/>
+  <line x1="380" y1="20" x2="365" y2="20" stroke="#ED1D24" stroke-width="3"/>
+  <line x1="380" y1="20" x2="380" y2="35" stroke="#ED1D24" stroke-width="3"/>
+  <line x1="20" y1="580" x2="35" y2="580" stroke="#ED1D24" stroke-width="3"/>
+  <line x1="20" y1="580" x2="20" y2="565" stroke="#ED1D24" stroke-width="3"/>
+  <line x1="380" y1="580" x2="365" y2="580" stroke="#ED1D24" stroke-width="3"/>
+  <line x1="380" y1="580" x2="380" y2="565" stroke="#ED1D24" stroke-width="3"/>
+</svg>

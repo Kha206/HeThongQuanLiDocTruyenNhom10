@@ -4,7 +4,7 @@ import { useAuth } from '../context/AuthContext';
 import {
   Search, LogOut, ShieldAlert, Menu, X, Sparkles,
   CreditCard, Crown, BookOpen, Bell, CheckCheck,
-  Clock, MessageSquare, History
+  Clock, MessageSquare, History, User, BarChart3, Users
 } from 'lucide-react';
 import Avatar from './Avatar';
 import api from '../services/api';
@@ -312,6 +312,14 @@ const Navbar = () => {
 
                   <div className="py-1 border-b border-[#2A2A38]/50">
                     <Link
+                      to="/profile"
+                      onClick={() => setDropdownOpen(false)}
+                      className="flex items-center px-4 py-2 text-gray-200 hover:bg-[#23232E] hover:text-[#ED1D24] transition-colors"
+                    >
+                      <User className="w-4 h-4 mr-2 text-[#ED1D24]" />
+                      Hồ Sơ & Bảo Mật
+                    </Link>
+                    <Link
                       to="/reading-history"
                       onClick={() => setDropdownOpen(false)}
                       className="flex items-center px-4 py-2 text-gray-200 hover:bg-[#23232E] hover:text-[#ED1D24] transition-colors"
@@ -347,6 +355,22 @@ const Navbar = () => {
 
                   {isAdmin && (
                     <div className="py-1 border-b border-[#2A2A38]/50">
+                      <Link
+                        to="/admin/dashboard"
+                        onClick={() => setDropdownOpen(false)}
+                        className="flex items-center px-4 py-2 text-gray-200 hover:bg-[#23232E] hover:text-[#ED1D24] transition-colors font-semibold"
+                      >
+                        <BarChart3 className="w-4 h-4 mr-2 text-[#ED1D24]" />
+                        Bảng Thống Kê
+                      </Link>
+                      <Link
+                        to="/admin/users"
+                        onClick={() => setDropdownOpen(false)}
+                        className="flex items-center px-4 py-2 text-gray-200 hover:bg-[#23232E] hover:text-blue-400 transition-colors"
+                      >
+                        <Users className="w-4 h-4 mr-2 text-blue-400" />
+                        Quản Trị Thành Viên
+                      </Link>
                       <Link
                         to="/admin/stories"
                         onClick={() => setDropdownOpen(false)}
@@ -462,6 +486,9 @@ const Navbar = () => {
             </Link>
             {isAuthenticated && (
               <>
+                <Link to="/profile" onClick={() => setMobileMenuOpen(false)} className="py-1 text-gray-200 hover:text-[#ED1D24] flex items-center gap-1.5">
+                  <User className="w-3.5 h-3.5 text-[#ED1D24]" /> Hồ Sơ & Bảo Mật
+                </Link>
                 <Link to="/reading-history" onClick={() => setMobileMenuOpen(false)} className="py-1 text-gray-200 hover:text-[#ED1D24] flex items-center gap-1.5">
                   <BookOpen className="w-3.5 h-3.5 text-[#ED1D24]" /> Truyện Đang Đọc
                 </Link>
@@ -475,7 +502,13 @@ const Navbar = () => {
             )}
             {isAdmin && (
               <>
-                <Link to="/admin/stories" onClick={() => setMobileMenuOpen(false)} className="py-1 text-[#ED1D24]">
+                <Link to="/admin/dashboard" onClick={() => setMobileMenuOpen(false)} className="py-1 text-[#ED1D24] font-bold flex items-center gap-1.5">
+                  <BarChart3 className="w-3.5 h-3.5" /> Bảng Thống Kê
+                </Link>
+                <Link to="/admin/users" onClick={() => setMobileMenuOpen(false)} className="py-1 text-blue-400 flex items-center gap-1.5">
+                  <Users className="w-3.5 h-3.5" /> Quản Trị Thành Viên
+                </Link>
+                <Link to="/admin/stories" onClick={() => setMobileMenuOpen(false)} className="py-1 text-gray-300 hover:text-[#ED1D24]">
                   Quản Trị Truyện
                 </Link>
                 <Link to="/admin/chapters" onClick={() => setMobileMenuOpen(false)} className="py-1 text-emerald-400">

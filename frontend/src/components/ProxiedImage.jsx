@@ -1,7 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { getProxiedImageUrl } from '../utils/imageProxy';
 
-const DEFAULT_FALLBACK = 'https://comicvine.gamespot.com/a/uploads/scale_medium/0/394/78670-5533-105342-1-amazing-fantasy.jpg';
+const DEFAULT_FALLBACK = '/placeholder-cover.svg';
 
 /**
  * ProxiedImage Component

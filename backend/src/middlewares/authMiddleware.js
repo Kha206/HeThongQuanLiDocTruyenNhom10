@@ -19,6 +19,13 @@ const authMiddleware = async (req, res, next) => {
       return res.status(401).json({ success: false, message: 'Invalid token. User no longer exists.' });
     }
 
+    if (user.status === 'suspended') {
+      return res.status(403).json({
+        success: false,
+        message: 'Tài khoản của bạn đã bị tạm ngừng hoạt động do vi phạm điều khoản dịch vụ.' + (user.status_reason ? ` Lý do: ${user.status_reason}` : '')
+      });
+    }
+
     req.user = user;
     next();
   } catch (error) {

@@ -5,9 +5,10 @@ import {
   BookOpen, Plus, Search, Upload, AlertTriangle, CheckCircle2,
   Trash2, Eye, EyeOff, ExternalLink, ShieldCheck, Sparkles,
   RefreshCw, Image as ImageIcon, FileText, Calendar, AlertCircle,
-  X, Layers, ChevronRight
+  X, Layers, ChevronRight, Users
 } from 'lucide-react';
 import ProxiedImage from '../../components/ProxiedImage';
+import CharacterAvatar from '../../components/CharacterAvatar';
 
 
 const parseCharacterCredits = (credits) => {
@@ -33,6 +34,10 @@ const AdminChaptersPage = () => {
   const [loadingChapters, setLoadingChapters] = useState(false);
   const [message, setMessage] = useState(null);
 
+  // Delete Confirmation Modal State
+  const [chapterToDelete, setChapterToDelete] = useState(null);
+  const [isDeletingChapter, setIsDeletingChapter] = useState(false);
+
   // Modal State
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [inputMode, setInputMode] = useState('comicvine'); // 'comicvine' | 'manual'
@@ -48,6 +53,12 @@ const AdminChaptersPage = () => {
   // Manual Upload State (Mode B)
   const [uploadingImage, setUploadingImage] = useState(false);
   const [uploadedImagePreview, setUploadedImagePreview] = useState('');
+
+  // Character Credits State
+  const [charUrlInput, setCharUrlInput] = useState('');
+  const [charLoading, setCharLoading] = useState(false);
+  const [charError, setCharError] = useState('');
+  const [cvIssueHasNoCharacters, setCvIssueHasNoCharacters] = useState(false);
 
   // Form Fields
   const [formData, setFormData] = useState({
@@ -116,6 +127,10 @@ const AdminChaptersPage = () => {
     setSelectedIssueId(null);
     setVolumeWarning(null);
     setUploadedImagePreview('');
+    setCharUrlInput('');
+    setCharLoading(false);
+    setCharError('');
+    setCvIssueHasNoCharacters(false);
     
     // Auto suggest next chapter number
     const maxNum = chapters.reduce((max, c) => Math.max(max, c.chapter_number || 0), 0);
@@ -153,7 +168,7 @@ const AdminChaptersPage = () => {
     // Validate ComicVine issue URL format (must contain comicvine.gamespot.com and 4000-XXXX)
     const isComicVine = trimmed.includes('comicvine.gamespot.com') && /4000-\d+/.test(trimmed);
     if (!isComicVine) {
-      setFormError('Link không hợp lệ, vui lòng dán đúng link issue từ comicvine.gamespot.com');
+      setFormError('Link không hợp lệ, vui lòng dán đúng link issue từ comicvine.gamespot.com (chứa 4000-ID)');
       return;
     }
 
@@ -161,29 +176,67 @@ const AdminChaptersPage = () => {
     setSelectedIssueId(null);
     setCvResults([]);
     try {
-      const res = await api.get(`/admin/comicvine/issue-by-url?story_id=${modalStoryId}&url=${encodeURIComponent(trimmed)}`);
+      const res = await api.get(`/comicvine/issue?story_id=${modalStoryId}&url=${encodeURIComponent(trimmed)}`);
       console.log('=== [DEBUG COMICVINE FRONTEND] API Search Response ===', res);
-      console.log('=== [DEBUG COMICVINE FRONTEND] Full issue object ===', res.issue);
-      console.log('=== [DEBUG COMICVINE FRONTEND] "image" field ===', res.issue?.image);
-      console.log('=== [DEBUG COMICVINE FRONTEND] "cover_image" field ===', res.issue?.cover_image);
 
-      if (res.success && res.issue) {
-        setCvResults([res.issue]);
+      if (res && (res.success || res.issueNumber || res.name)) {
+        const issueNumber = res.issueNumber !== undefined && res.issueNumber !== null ? String(res.issueNumber) : (res.issue?.issue_number ? String(res.issue.issue_number) : '');
+        const name = res.name || res.issue?.title || res.issue?.name || '';
+        const coverUrl = res.coverUrl || res.issue?.cover_image || res.issue?.coverUrl || '';
+        const releaseDate = res.releaseDate || res.issue?.release_date || '';
+        const description = res.description || res.issue?.content || res.issue?.description || '';
+        const rawChars = res.character_credits || res.issue?.character_credits || res.characters || res.issue?.characters || [];
+        const charCredits = Array.isArray(rawChars)
+          ? rawChars.map(c => (typeof c === 'string' ? { name: c } : c))
+          : [];
+        const issueId = res.issueId || res.issue?.id || res.issue?.comicvine_issue_id || null;
+
+        setCvIssueHasNoCharacters(charCredits.length === 0);
+        setCharError('');
+
+        // Ghi đè hoàn toàn dữ liệu cũ của các ô:
+        // Số chương (Issue #), Tên chương truyện, Ngày phát hành, Ảnh bìa chương (URL), Tóm tắt nội dung
+        setFormData(prev => ({
+          ...prev,
+          chapter_number: issueNumber,
+          title: name,
+          release_date: releaseDate,
+          cover_image: coverUrl,
+          content: description,
+          comicvine_issue_id: issueId,
+          character_credits: charCredits
+        }));
+
+        setUploadedImagePreview(coverUrl);
+        setSelectedIssueId(issueId || 'cv-selected');
+
+        const displayIssue = res.issue || {
+          id: issueId,
+          comicvine_issue_id: issueId,
+          issue_number: issueNumber,
+          title: name,
+          name: name,
+          cover_image: coverUrl,
+          release_date: releaseDate,
+          volume_name: res.volumeName || '',
+          character_credits: charCredits
+        };
+        setCvResults([displayIssue]);
+
         if (res.volume_matches === false) {
-          setVolumeWarning('Issue này không thuộc bộ truyện đã chọn, bạn có chắc muốn tiếp tục?');
+          setVolumeWarning(res.volume_warning || 'Issue này không thuộc bộ truyện đã chọn, bạn có chắc muốn tiếp tục?');
+        } else {
+          setVolumeWarning(null);
         }
       } else {
-        setFormError('Không tìm thấy issue này trên ComicVine');
+        setFormError(res?.message || 'Không tìm thấy issue này trên ComicVine');
       }
     } catch (err) {
-      const errMsg = err.message || '';
-      if (errMsg.includes('404') || errMsg.includes('Không tìm thấy')) {
-        setFormError('Không tìm thấy issue này trên ComicVine');
-      } else if (errMsg.includes('Link không hợp lệ')) {
-        setFormError('Link không hợp lệ, vui lòng dán đúng link issue từ comicvine.gamespot.com');
-      } else {
-        setFormError(errMsg || 'Lỗi khi gọi API tìm kiếm ComicVine.');
-      }
+      console.error('=== [DEBUG COMICVINE FRONTEND ERROR] ===', err);
+      const errMsg = err.response?.data?.message || err.message || 'Lỗi khi gọi API tìm kiếm ComicVine.';
+      setFormError(errMsg);
+      setCvResults([]);
+      setSelectedIssueId(null);
     } finally {
       setCvSearching(false);
     }
@@ -191,67 +244,112 @@ const AdminChaptersPage = () => {
 
   // Select Issue from ComicVine Search Results
   const handleSelectIssue = (issue) => {
-    // 1. Log entire issue object to console with focus on id/issue_id and image sub-URLs
-    console.log('=== [DEBUG COMICVINE SELECTION] Full issue object ===', issue);
-    console.log('=== [DEBUG COMICVINE SELECTION] ID & Issue ID ===', {
-      id: issue.id,
-      comicvine_issue_id: issue.comicvine_issue_id,
-      issue_number: issue.issue_number
-    });
-    console.log('=== [DEBUG COMICVINE SELECTION] Image sub-URLs ===', {
-      raw_image_field: issue.image,
-      icon_url: issue.image?.icon_url || null,
-      medium_url: issue.image?.medium_url || (typeof issue.image === 'string' ? issue.image : null),
-      original_url: issue.image?.original_url || (typeof issue.image === 'string' ? issue.image : null),
-      cover_image: issue.cover_image || null
-    });
+    const resolvedCover = issue.coverUrl || issue.cover_image || (typeof issue.image === 'string' ? issue.image : (issue.image?.original_url || issue.image?.medium_url || ''));
+    const resolvedContent = issue.description || issue.content || '';
+    const issueNum = issue.issueNumber !== undefined && issue.issueNumber !== null ? String(issue.issueNumber) : (issue.issue_number !== undefined && issue.issue_number !== null ? String(issue.issue_number) : '');
+    const issueTitle = issue.name || issue.title || (issueNum ? `Issue #${issueNum}` : '');
+    const relDate = issue.releaseDate || issue.release_date || '';
+    const charCredits = issue.character_credits || [];
 
-    // 2. Resolve cover image from all possible field names with exact priority
-    let resolvedCover = '';
-    if (typeof issue.cover_image === 'string' && issue.cover_image.trim()) {
-      resolvedCover = issue.cover_image.trim();
-    } else if (issue.image && typeof issue.image === 'object') {
-      resolvedCover = issue.image.medium_url ||
-                     issue.image.original_url ||
-                     issue.image.super_url ||
-                     issue.image.screen_url ||
-                     issue.image.icon_url ||
-                     '';
-    } else if (typeof issue.image === 'string' && issue.image.trim()) {
-      resolvedCover = issue.image.trim();
-    } else if (typeof issue.cover_url === 'string' && issue.cover_url.trim()) {
-      resolvedCover = issue.cover_url.trim();
-    } else if (typeof issue.image_url === 'string' && issue.image_url.trim()) {
-      resolvedCover = issue.image_url.trim();
-    }
-
-    // 3. Resolve content / description from all possible field names
-    let resolvedContent = '';
-    const rawContent = issue.content || issue.description || issue.deck || issue.summary || '';
-    if (typeof rawContent === 'string' && rawContent.trim()) {
-      resolvedContent = rawContent.replace(/<[^>]*>?/gm, '').trim();
-    }
-
-    console.log('[AdminChapters] Autofilling form fields with selected issue:', {
-      cover_image: resolvedCover,
-      content: resolvedContent,
-      issue_number: issue.issue_number,
-      title: issue.title || issue.name
-    });
-
-    // Overwrite selection state cleanly to prevent any cache contamination
     setSelectedIssueId(issue.id || issue.comicvine_issue_id);
     setUploadedImagePreview(resolvedCover);
+    setCvIssueHasNoCharacters(charCredits.length === 0);
+    setCharError('');
 
     setFormData(prev => ({
       ...prev,
-      title: issue.title || issue.name || (issue.issue_number ? `Issue #${issue.issue_number}` : prev.title),
-      chapter_number: (issue.issue_number !== undefined && issue.issue_number !== null) ? String(issue.issue_number) : prev.chapter_number,
-      release_date: issue.release_date || issue.cover_date || prev.release_date,
+      chapter_number: issueNum,
+      title: issueTitle,
+      release_date: relDate,
       cover_image: resolvedCover,
       content: resolvedContent,
       comicvine_issue_id: issue.id || issue.comicvine_issue_id || null,
-      character_credits: issue.character_credits || []
+      character_credits: charCredits
+    }));
+  };
+
+  // Thêm nhân vật thủ công qua link ComicVine
+  const handleAddCharacterByUrl = async (e) => {
+    if (e) e.preventDefault();
+    setCharError('');
+
+    const trimmed = (charUrlInput || '').trim();
+    if (!trimmed) {
+      setCharError('Vui lòng dán link nhân vật ComicVine (chứa 4005-ID)');
+      return;
+    }
+
+    if (!trimmed.includes('comicvine.gamespot.com') && !/4005-\d+/.test(trimmed)) {
+      setCharError('Link không hợp lệ. Vui lòng dán đúng link nhân vật từ comicvine.gamespot.com (chứa 4005-ID)');
+      return;
+    }
+
+    if (formData.character_credits.length >= 8) {
+      setCharError('Mỗi chương chỉ được có tối đa 8 nhân vật.');
+      return;
+    }
+
+    // Check duplicate by ComicVine URL id if possible
+    const matchId = trimmed.match(/4005-(\d+)/);
+    const parsedId = matchId ? parseInt(matchId[1], 10) : null;
+    if (parsedId && formData.character_credits.some(c => c.id === parsedId)) {
+      setCharError('Nhân vật này đã có trong danh sách.');
+      return;
+    }
+
+    setCharLoading(true);
+    try {
+      const res = await api.get(`/comicvine/character?url=${encodeURIComponent(trimmed)}`);
+      if (res && res.success && res.character) {
+        const newChar = res.character;
+
+        // Check duplicate by name or id
+        const isDuplicateName = formData.character_credits.some(
+          c => c.name.toLowerCase() === (newChar.name || '').toLowerCase() || (newChar.id && c.id === newChar.id)
+        );
+        if (isDuplicateName) {
+          setCharError(`Nhân vật "${newChar.name}" đã có trong danh sách.`);
+          return;
+        }
+
+        // Check duplicate icon across characters (Requirement 6: Mỗi nhân vật phải có ảnh riêng, không trùng giữa các nhân vật)
+        let finalIcon = newChar.icon_url || null;
+        if (finalIcon) {
+          const isIconUsed = formData.character_credits.some(c => c.icon_url && c.icon_url === finalIcon);
+          if (isIconUsed) {
+            finalIcon = null;
+          }
+        }
+
+        const charToAdd = {
+          id: newChar.id,
+          name: newChar.name,
+          icon_url: finalIcon
+        };
+
+        setFormData(prev => ({
+          ...prev,
+          character_credits: [...prev.character_credits, charToAdd]
+        }));
+        setCharUrlInput('');
+        setCvIssueHasNoCharacters(false);
+      } else {
+        setCharError(res?.message || 'Không tìm thấy thông tin nhân vật này trên ComicVine.');
+      }
+    } catch (err) {
+      console.error('Error fetching character from ComicVine:', err);
+      const errMsg = err.response?.data?.message || err.message || 'Lỗi khi gọi API ComicVine lấy thông tin nhân vật.';
+      setCharError(errMsg);
+    } finally {
+      setCharLoading(false);
+    }
+  };
+
+  // Xóa 1 nhân vật khỏi danh sách
+  const handleRemoveCharacter = (indexToRemove) => {
+    setFormData(prev => ({
+      ...prev,
+      character_credits: prev.character_credits.filter((_, idx) => idx !== indexToRemove)
     }));
   };
 
@@ -350,21 +448,41 @@ const AdminChaptersPage = () => {
     }
   };
 
-  // Delete Chapter
-  const handleDeleteChapter = async (chapterId, chapterNum) => {
-    if (!window.confirm(`Bạn có chắc chắn muốn xóa Chương #${chapterNum}? Hành động này sẽ xóa dữ liệu bình luận và tiến độ đọc liên quan!`)) {
-      return;
-    }
+  // Request Delete Chapter (Opens custom modal)
+  const handleRequestDeleteChapter = (chapter) => {
+    setChapterToDelete({
+      id: chapter.id,
+      chapter_number: chapter.chapter_number,
+      title: chapter.title
+    });
+  };
+
+  // Confirm Delete Chapter via API
+  const handleConfirmDeleteChapter = async () => {
+    if (!chapterToDelete) return;
+    setIsDeletingChapter(true);
 
     try {
-      const res = await api.delete(`/admin/chapters/${chapterId}`);
-      if (res.success) {
-        setMessage({ type: 'success', text: `Đã xóa Chương #${chapterNum} thành công.` });
-        setChapters(prev => prev.filter(c => c.id !== chapterId));
+      const res = await api.delete(`/admin/chapters/${chapterToDelete.id}`);
+      if (res.success || res.message) {
+        setMessage({ type: 'success', text: `Đã xóa Chương #${chapterToDelete.chapter_number} thành công.` });
+        setChapters(prev => prev.filter(c => Number(c.id) !== Number(chapterToDelete.id)));
+        setStories(prev => prev.map(s => {
+          if (s.chapters && Array.isArray(s.chapters)) {
+            return {
+              ...s,
+              chapters: s.chapters.filter(ch => Number(ch.id) !== Number(chapterToDelete.id))
+            };
+          }
+          return s;
+        }));
+        setChapterToDelete(null);
         setTimeout(() => setMessage(null), 3000);
       }
     } catch (err) {
-      setMessage({ type: 'error', text: err.message || 'Lỗi xóa chương.' });
+      setMessage({ type: 'error', text: err.message || 'Lỗi khi xóa chương truyện.' });
+    } finally {
+      setIsDeletingChapter(false);
     }
   };
 
@@ -507,7 +625,7 @@ const AdminChaptersPage = () => {
                 <tbody className="divide-y divide-[#2A2A38]/60 text-gray-300">
                   {chapters.map((c) => {
                     const isCv = Boolean(c.comicvine_issue_id);
-                    const cover = c.cover_image || selectedStory?.cover_image;
+                    const cover = c.cover_image || null;
 
                     return (
                       <tr key={c.id} className="hover:bg-white/[0.02] transition-colors">
@@ -592,10 +710,11 @@ const AdminChaptersPage = () => {
                               <ExternalLink className="w-3.5 h-3.5" />
                             </Link>
                             <button
+                              type="button"
                               id={`delete-chapter-btn-${c.id}`}
-                              onClick={() => handleDeleteChapter(c.id, c.chapter_number)}
+                              onClick={() => handleRequestDeleteChapter(c)}
                               className="p-1.5 rounded-lg bg-red-950/60 hover:bg-red-900 border border-red-800 text-red-300 transition-all cursor-pointer"
-                              title="Xóa chương"
+                              title={`Xóa Chương #${c.chapter_number}`}
                             >
                               <Trash2 className="w-3.5 h-3.5" />
                             </button>
@@ -606,6 +725,79 @@ const AdminChaptersPage = () => {
                   })}
                 </tbody>
               </table>
+            </div>
+          </div>
+        )}
+
+        {/* Modal: Xác Nhận Xóa Chương Truyện */}
+        {chapterToDelete && (
+          <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/80 backdrop-blur-sm animate-fade-in">
+            <div className="bg-[#1A1A22] border border-[#2A2A38] rounded-3xl max-w-md w-full p-6 sm:p-7 shadow-2xl relative">
+              <button
+                type="button"
+                id="btn-close-delete-modal"
+                onClick={() => setChapterToDelete(null)}
+                disabled={isDeletingChapter}
+                className="absolute top-5 right-5 p-2 rounded-full bg-white/5 hover:bg-white/10 text-gray-400 hover:text-white transition-colors cursor-pointer"
+              >
+                <X className="w-5 h-5" />
+              </button>
+
+              <div className="flex items-center gap-3.5 mb-4">
+                <div className="w-12 h-12 rounded-2xl bg-red-500/15 border border-red-500/30 flex items-center justify-center text-red-400 flex-shrink-0">
+                  <Trash2 className="w-6 h-6" />
+                </div>
+                <div>
+                  <h3 className="text-lg font-bold text-white">Xác Nhận Xóa Chương</h3>
+                  <p className="text-xs text-red-400 font-medium">Hành động này không thể hoàn tác</p>
+                </div>
+              </div>
+
+              <div className="p-3.5 rounded-2xl bg-[#0F0F14] border border-[#2A2A38] mb-4 space-y-1.5 text-xs text-gray-300">
+                <p>
+                  <span className="text-gray-500">Chương số: </span>
+                  <strong className="text-amber-400 font-bold">Chương #{chapterToDelete.chapter_number}</strong>
+                </p>
+                <p>
+                  <span className="text-gray-500">Tiêu đề: </span>
+                  <strong className="text-white font-medium">{chapterToDelete.title || `Issue #${chapterToDelete.chapter_number}`}</strong>
+                </p>
+              </div>
+
+              <p className="text-xs text-gray-400 mb-6 leading-relaxed">
+                Xóa chương này sẽ xóa đồng thời toàn bộ dữ liệu bình luận của độc giả và lịch sử / tiến độ đọc liên quan đến chương này trong hệ thống.
+              </p>
+
+              <div className="flex items-center justify-end gap-3">
+                <button
+                  type="button"
+                  id="btn-cancel-delete-chapter"
+                  disabled={isDeletingChapter}
+                  onClick={() => setChapterToDelete(null)}
+                  className="px-4 py-2.5 rounded-xl bg-[#0F0F14] hover:bg-[#23232E] border border-[#2A2A38] text-gray-300 hover:text-white font-semibold text-xs transition-all cursor-pointer"
+                >
+                  Hủy bỏ
+                </button>
+                <button
+                  type="button"
+                  id="btn-confirm-delete-chapter"
+                  disabled={isDeletingChapter}
+                  onClick={handleConfirmDeleteChapter}
+                  className="px-5 py-2.5 rounded-xl bg-red-600 hover:bg-red-500 text-white font-bold text-xs flex items-center gap-2 shadow-lg shadow-red-600/20 transition-all cursor-pointer disabled:opacity-50"
+                >
+                  {isDeletingChapter ? (
+                    <>
+                      <RefreshCw className="w-4 h-4 animate-spin" />
+                      <span>Đang xóa...</span>
+                    </>
+                  ) : (
+                    <>
+                      <Trash2 className="w-4 h-4" />
+                      <span>Xác Nhận Xóa</span>
+                    </>
+                  )}
+                </button>
+              </div>
             </div>
           </div>
         )}
@@ -962,6 +1154,111 @@ const AdminChaptersPage = () => {
                     placeholder="Tóm tắt bối cảnh, diễn biến và kết thúc kịch tính của chương truyện này..."
                     className="w-full bg-[#0F0F14] border border-[#2A2A38] focus:border-[#ED1D24] text-white text-xs rounded-xl p-3 outline-none leading-relaxed resize-none"
                   />
+                </div>
+
+                {/* Khu vực Nhân vật xuất hiện */}
+                <div className="pt-2 border-t border-[#2A2A38]/70">
+                  <div className="flex items-center justify-between mb-2">
+                    <div className="flex items-center gap-2">
+                      <Users className="w-4 h-4 text-[#ED1D24]" />
+                      <label className="text-xs font-bold text-gray-200">
+                        Nhân vật xuất hiện
+                      </label>
+                      <span className="text-[11px] font-mono px-2 py-0.5 rounded-full bg-white/10 text-gray-300 font-semibold">
+                        {formData.character_credits.length}/8
+                      </span>
+                    </div>
+                    <span className="text-[10px] text-gray-400">
+                      Tối đa 8 nhân vật mỗi chương
+                    </span>
+                  </div>
+
+                  {/* Danh sách thẻ nhân vật */}
+                  {formData.character_credits.length > 0 ? (
+                    <div className="flex flex-wrap gap-2 mb-3 p-2.5 rounded-xl bg-[#0F0F14] border border-[#2A2A38] max-h-40 overflow-y-auto">
+                      {formData.character_credits.map((ch, idx) => (
+                        <div
+                          key={`${ch.id || idx}-${ch.name}`}
+                          className="group flex items-center gap-2 px-2.5 py-1.5 rounded-xl bg-[#1A1A22] border border-[#2A2A38] hover:border-gray-500 transition-all shadow-sm"
+                        >
+                          <CharacterAvatar name={ch.name} icon_url={ch.icon_url} size="xs" />
+                          <span className="text-xs font-medium text-white max-w-[120px] truncate" title={ch.name}>
+                            {ch.name}
+                          </span>
+                          <button
+                            type="button"
+                            onClick={() => handleRemoveCharacter(idx)}
+                            aria-label={`Xóa nhân vật ${ch.name}`}
+                            title={`Xóa nhân vật ${ch.name}`}
+                            className="p-0.5 text-gray-400 hover:text-red-400 rounded hover:bg-white/5 transition-colors cursor-pointer flex-shrink-0"
+                          >
+                            <X className="w-3.5 h-3.5" />
+                          </button>
+                        </div>
+                      ))}
+                    </div>
+                  ) : (
+                    cvIssueHasNoCharacters ? (
+                      <div className="p-3 rounded-xl bg-amber-500/10 border border-amber-500/30 text-amber-300 text-xs flex items-center gap-2.5 mb-3">
+                        <AlertCircle className="w-4 h-4 flex-shrink-0 text-amber-400" />
+                        <span>Issue này chưa có dữ liệu nhân vật trên ComicVine.</span>
+                      </div>
+                    ) : (
+                      <div className="p-3 rounded-xl bg-[#0F0F14] border border-[#2A2A38] text-gray-400 text-xs flex items-center gap-2.5 mb-3">
+                        <Users className="w-4 h-4 text-gray-500 flex-shrink-0" />
+                        <span>Chưa có nhân vật nào trong chương này. Bạn có thể thêm nhân vật bằng link ComicVine bên dưới.</span>
+                      </div>
+                    )
+                  )}
+
+                  {/* Ô nhập dán link nhân vật ComicVine */}
+                  <div className="space-y-1.5">
+                    <div className="flex items-center gap-2">
+                      <input
+                        type="text"
+                        id="input-add-character-url"
+                        value={charUrlInput}
+                        onChange={(e) => {
+                          setCharUrlInput(e.target.value);
+                          if (charError) setCharError('');
+                        }}
+                        onKeyDown={(e) => {
+                          if (e.key === 'Enter') {
+                            e.preventDefault();
+                            handleAddCharacterByUrl(e);
+                          }
+                        }}
+                        disabled={formData.character_credits.length >= 8 || charLoading}
+                        placeholder="Dán link nhân vật ComicVine (ví dụ: https://comicvine.gamespot.com/thor/4005-2268/)"
+                        className="flex-1 bg-[#0F0F14] border border-[#2A2A38] focus:border-[#ED1D24] text-white text-xs rounded-xl px-3 py-2 outline-none font-mono disabled:opacity-50"
+                      />
+                      <button
+                        type="button"
+                        id="btn-add-character"
+                        onClick={handleAddCharacterByUrl}
+                        disabled={formData.character_credits.length >= 8 || charLoading}
+                        className="px-3.5 py-2 rounded-xl bg-white/10 hover:bg-white/20 text-white text-xs font-bold flex items-center gap-1.5 transition-all disabled:opacity-50 cursor-pointer flex-shrink-0"
+                      >
+                        {charLoading ? (
+                          <RefreshCw className="w-3.5 h-3.5 animate-spin text-[#ED1D24]" />
+                        ) : (
+                          <Plus className="w-3.5 h-3.5 text-[#ED1D24]" />
+                        )}
+                        <span>{charLoading ? 'Đang lấy...' : 'Thêm nhân vật'}</span>
+                      </button>
+                    </div>
+
+                    {charError && (
+                      <p className="text-[11px] text-red-400 flex items-center gap-1 pl-1">
+                        <AlertCircle className="w-3 h-3 flex-shrink-0" />
+                        <span>{charError}</span>
+                      </p>
+                    )}
+
+                    <p className="text-[10px] text-gray-500 pl-1">
+                      * Nhập link nhân vật ComicVine (chứa 4005-ID) để tự động lấy tên và ảnh đại diện chính thức.
+                    </p>
+                  </div>
                 </div>
 
                 {/* Modal Actions */}

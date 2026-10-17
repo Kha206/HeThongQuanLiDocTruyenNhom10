@@ -1,0 +1,25 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 100 100" fill="none">
+  <defs>
+    <radialGradient id="charBg" cx="50%" cy="40%" r="60%">
+      <stop offset="0%" stop-color="#232330" />
+      <stop offset="100%" stop-color="#12121A" />
+    </radialGradient>
+    <linearGradient id="charIconGrad" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" stop-color="#A5A5BA" />
+      <stop offset="100%" stop-color="#606075" />
+    </linearGradient>
+  </defs>
+  <!-- Background circle -->
+  <circle cx="50" cy="50" r="48" fill="url(#charBg)" stroke="#303042" stroke-width="2" />
+  
+  <!-- Heroic Helmet / Mask Silhouette (Universal Marvel Character Placeholder) -->
+  <!-- Head shape -->
+  <path d="M50 20 C36 20 28 30 28 44 C28 56 36 67 44 71 L44 76 L56 76 L56 71 C64 67 72 56 72 44 C72 30 64 20 50 20 Z" fill="url(#charIconGrad)" opacity="0.9" />
+  
+  <!-- Heroic mask eye slots (cutout effect) -->
+  <path d="M36 43 C40 43 45 40 46 38 C43 43 38 46 34 45 Z" fill="#12121A" />
+  <path d="M64 43 C60 43 55 40 54 38 C57 43 62 46 66 45 Z" fill="#12121A" />
+  
+  <!-- Crest accent on forehead -->
+  <polygon points="50,26 53,33 50,37 47,33" fill="#ED1D24" opacity="0.85" />
+</svg>

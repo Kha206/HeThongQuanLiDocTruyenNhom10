@@ -23,7 +23,9 @@ router.delete('/stories/:id', adminController.deleteStory);
 const { uploadChapterCover } = require('../middlewares/uploadMiddleware');
 router.post('/upload-cover', uploadChapterCover.single('cover'), adminController.uploadChapterCover);
 router.get('/comicvine/issues', adminController.searchComicVineIssues);
+router.get('/comicvine/issue', adminController.fetchComicVineIssueByUrl);
 router.get('/comicvine/issue-by-url', adminController.fetchComicVineIssueByUrl);
+router.get('/comicvine/character', adminController.fetchComicVineCharacterByUrl);
 router.get('/stories/:storyId/chapters', adminController.getStoryChapters);
 router.post('/chapters', adminController.addChapter);
 router.put('/chapters/:id', adminController.updateChapter);
@@ -57,5 +59,22 @@ router.patch('/comments/:id/approve', (req, res, next) => {
 });
 router.delete('/comments/:id', commentController.deleteComment);
 
+// ==============================================================================
+// SPRINT 5: QUẢN LÝ THÀNH VIÊN (Admin User Management)
+// ==============================================================================
+router.get('/users', adminController.getUsers);
+router.get('/users/:id', adminController.getUserDetail);
+router.patch('/users/:id/status', adminController.updateUserStatus);
+
+// ==============================================================================
+// SPRINT 5: THỐNG KÊ & DASHBOARD (Admin Statistics & Reporting)
+// ==============================================================================
+router.get('/stats/overview', adminController.getStatsOverview);
+router.get('/stats/views', adminController.getStatsViews);
+router.get('/stats/revenue-monthly', adminController.getStatsRevenueMonthly);
+router.get('/stats/top-stories', adminController.getStatsTopStories);
+router.get('/stats/users-and-transactions', adminController.getStatsUsersAndTransactions);
+
 module.exports = router;
+
 

@@ -21,4 +21,16 @@ router.get('/:id/follow-status', (req, res, next) => {
   next();
 }, followController.getFollowStatus);
 
+// Rating 1-5 sao (Sprint 5)
+router.post('/:id/rating', authMiddleware, storyController.rateStory);
+router.post('/:id/rate', authMiddleware, storyController.rateStory);
+router.get('/:id/rating', (req, res, next) => {
+  const authHeader = req.headers.authorization;
+  if (authHeader && authHeader.startsWith('Bearer ')) {
+    return authMiddleware(req, res, next);
+  }
+  next();
+}, storyController.getStoryRating);
+
 module.exports = router;
+

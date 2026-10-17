@@ -72,7 +72,7 @@ const ComicCard = ({ story }) => {
           src={story.cover_image}
           alt={story.title}
           className="w-full h-full object-cover transition-transform duration-500 group-hover:scale-105"
-          fallbackSrc="https://comicvine.gamespot.com/a/uploads/scale_medium/0/394/78670-5533-105342-1-amazing-fantasy.jpg"
+          fallbackSrc="/placeholder-cover.svg"
         />
 
         {/* Gradient Overlay */}
@@ -90,8 +90,15 @@ const ComicCard = ({ story }) => {
 
         {/* Rating Badge */}
         <div className="absolute bottom-2.5 left-2.5 flex items-center space-x-1 bg-black/70 backdrop-blur-sm px-2 py-0.5 rounded text-xs text-amber-400 font-semibold border border-white/10">
-          <Star className="w-3.5 h-3.5 fill-amber-400" />
-          <span>{Number(story.rating || 5.0).toFixed(1)}</span>
+          {story.rating_count && story.rating_count > 0 && story.average_rating ? (
+            <>
+              <Star className="w-3.5 h-3.5 fill-amber-400 text-amber-400" />
+              <span>{Number(story.average_rating).toFixed(1)}</span>
+              <span className="text-[10px] text-gray-400 font-normal">({story.rating_count})</span>
+            </>
+          ) : (
+            <span className="text-[10px] text-gray-300 font-medium">Chưa có đánh giá</span>
+          )}
         </div>
 
         {/* View Count */}

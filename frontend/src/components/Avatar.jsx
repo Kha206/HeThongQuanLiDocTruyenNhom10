@@ -1,4 +1,5 @@
 import React, { useState } from 'react';
+import { getProxiedImageUrl } from '../utils/imageProxy';
 
 /**
  * Bảng màu gradient vũ trụ Marvel (8 cặp màu tuyển chọn)
@@ -90,9 +91,10 @@ const Avatar = ({
 
   // Lấy đường dẫn ảnh nếu có (hỗ trợ avatar_url, avatar, src)
   const imageSource = src || user?.avatar_url || user?.avatar;
+  const proxiedImageSource = getProxiedImageUrl(imageSource);
 
   // Kiểm tra nếu là URL ảnh thật và chưa bị lỗi tải
-  const shouldRenderImage = Boolean(imageSource && !hasImgError);
+  const shouldRenderImage = Boolean(proxiedImageSource && !hasImgError);
 
   return (
     <div
@@ -101,7 +103,7 @@ const Avatar = ({
     >
       {shouldRenderImage ? (
         <img
-          src={imageSource}
+          src={proxiedImageSource}
           alt={alt || displayName}
           onError={() => setHasImgError(true)}
           className="w-full h-full object-cover rounded-full"

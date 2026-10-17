@@ -50,6 +50,13 @@ class CommentController {
       const chapterId = req.params.chapterId;
       const { content } = req.body;
 
+      if (req.user.status === 'restricted') {
+        return res.status(403).json({
+          success: false,
+          message: 'Tài khoản của bạn đang bị giới hạn, không thể gửi bình luận.'
+        });
+      }
+
       if (!content || !content.trim()) {
         return res.status(400).json({
           success: false,
@@ -261,6 +268,11 @@ class CommentController {
 
       await comment.update(updateData);
 
+      if (status === 'hidden') {
+        const { broadcastCommentRemoved } = require('../services/socketService');
+        broadcastCommentRemoved(comment.chapter_id, comment.id);
+      }
+
       return res.status(200).json({
         success: true,
         message: status === 'hidden' ? 'Đã ẩn bình luận vi phạm.' : 'Đã duyệt lại và hiển thị bình luận.',
@@ -291,7 +303,11 @@ class CommentController {
         });
       }
 
+      const chapterId = comment.chapter_id;
       await comment.destroy();
+
+      const { broadcastCommentRemoved } = require('../services/socketService');
+      broadcastCommentRemoved(chapterId, commentId);
 
       return res.status(200).json({
         success: true,

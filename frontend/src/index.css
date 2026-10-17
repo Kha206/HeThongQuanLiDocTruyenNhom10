@@ -149,3 +149,15 @@ body {
   border-color: rgba(237, 29, 36, 0.65);
 }
 
+/* Ẩn con mắt mặc định của trình duyệt Microsoft Edge / Internet Explorer để tránh bị 2 con mắt */
+input[type="password"]::-ms-reveal,
+input[type="password"]::-ms-clear,
+input::-ms-reveal,
+input::-ms-clear {
+  display: none !important;
+  width: 0 !important;
+  height: 0 !important;
+  pointer-events: none !important;
+  appearance: none !important;
+}
+

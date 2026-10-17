@@ -4,24 +4,29 @@ import { ArrowDown, Sparkles, BookOpen, ChevronRight } from 'lucide-react';
 import { Link } from 'react-router-dom';
 import ProxiedImage from './ProxiedImage';
 import { getProxiedImageUrl } from '../utils/imageProxy';
+import { useAuth } from '../context/AuthContext';
 
 const HeroScene = ({ stories = [] }) => {
+  const { isAuthenticated } = useAuth();
   const containerRef = useRef(null);
   const canvasContainerRef = useRef(null);
   const cursorInnerRef = useRef(null);
   const cursorOuterRef = useRef(null);
 
-
   const [activeSlide, setActiveSlide] = useState(0);
   const [scrollProgress, setScrollProgress] = useState(0);
   const [isInsideHero, setIsInsideHero] = useState(false);
 
-  // Real featured story from seeded data for Slide 2
-  const featuredStory = stories.find(s => s.title.includes('Civil War') || s.title.includes('Infinity')) || stories[0] || {
-    title: 'Civil War',
-    cover_image: 'https://comicvine.gamespot.com/a/uploads/scale_small/11/118689/2903877-2767530_2700867_supsm2013001_camunvar_1_.jpg',
-    description: 'Cuộc chiến chia rẽ các siêu anh hùng vĩ đại nhất Trái Đất.'
-  };
+  // Real featured story from seeded data for Slide 2 (Civil War or Infinity Gauntlet)
+  const featuredStory = stories.find(s => s.title.includes('Civil War'))
+    || stories.find(s => s.title.includes('Infinity'))
+    || stories[0]
+    || {
+      id: 2,
+      title: 'Civil War',
+      cover_image: 'https://comicvine.gamespot.com/a/uploads/scale_small/11/118689/2903877-2767530_2700867_supsm2013001_camunvar_1_.jpg',
+      description: 'Cuộc chiến chia rẽ các siêu anh hùng vĩ đại nhất Trái Đất.'
+    };
 
   useEffect(() => {
     if (!canvasContainerRef.current) return;
@@ -288,8 +293,8 @@ const HeroScene = ({ stories = [] }) => {
         },
         undefined,
         () => {
-          // Graceful fallback to direct URL
-          textureLoader.load(url, (fallbackTex) => {
+          // Fallback to local Marvel placeholder to completely avoid direct ComicVine CORS / 403
+          textureLoader.load('/placeholder-cover.svg', (fallbackTex) => {
             const mat = new THREE.MeshStandardMaterial({
               map: fallbackTex,
               roughness: 0.25,
@@ -563,8 +568,10 @@ const HeroScene = ({ stories = [] }) => {
 
           {/* SLIDE 1: Marvel Universe */}
           <div
-            className={`absolute inset-x-6 sm:inset-x-12 transition-all duration-700 pointer-events-auto ${
-              activeSlide === 0 ? 'opacity-100 translate-y-0' : 'opacity-0 -translate-y-8 pointer-events-none'
+            className={`absolute inset-x-6 sm:inset-x-12 transition-all duration-700 ${
+              activeSlide === 0
+                ? 'opacity-100 translate-y-0 pointer-events-auto z-20'
+                : 'opacity-0 -translate-y-8 pointer-events-none invisible z-0'
             }`}
           >
             <div className="max-w-2xl">
@@ -581,7 +588,7 @@ const HeroScene = ({ stories = [] }) => {
               <div className="mt-8 flex items-center gap-4">
                 <a
                   href="#story-catalog"
-                  className="px-6 py-3 bg-[#ED1D24] hover:bg-[#ff3333] text-white font-semibold rounded-xl shadow-lg shadow-[#ED1D24]/20 transition-all flex items-center gap-2 group"
+                  className="px-6 py-3 bg-[#ED1D24] hover:bg-[#ff3333] text-white font-semibold rounded-xl shadow-lg shadow-[#ED1D24]/20 transition-all flex items-center gap-2 group cursor-pointer"
                 >
                   <BookOpen className="w-4 h-4" />
                   <span>Khám Phá Ngay</span>
@@ -593,22 +600,27 @@ const HeroScene = ({ stories = [] }) => {
 
           {/* SLIDE 2: Featured Arc (Civil War / Infinity) */}
           <div
-            className={`absolute inset-x-6 sm:inset-x-12 transition-all duration-700 pointer-events-auto flex items-center justify-between ${
-              activeSlide === 1 ? 'opacity-100 translate-y-0' : 'opacity-0 translate-y-8 pointer-events-none'
+            className={`absolute inset-x-6 sm:inset-x-12 transition-all duration-700 flex items-center justify-between ${
+              activeSlide === 1
+                ? 'opacity-100 translate-y-0 pointer-events-auto z-20'
+                : 'opacity-0 translate-y-8 pointer-events-none invisible z-0'
             }`}
           >
             {/* Left Column: Image Mask */}
-            <div className="hidden md:block w-72 h-96 relative rounded-2xl overflow-hidden border border-white/10 shadow-2xl shadow-[#ED1D24]/20 group">
+            <Link
+              to={`/stories/${featuredStory.id || 2}`}
+              className="hidden md:block w-72 h-96 relative rounded-2xl overflow-hidden border border-white/10 shadow-2xl shadow-[#ED1D24]/20 group cursor-pointer"
+            >
               <ProxiedImage
                 src={featuredStory.cover_image}
                 alt={featuredStory.title}
                 className="w-full h-full object-cover transition-transform duration-700 group-hover:scale-105"
-                fallbackSrc="https://comicvine.gamespot.com/a/uploads/scale_medium/0/394/78670-5533-105342-1-amazing-fantasy.jpg"
+                fallbackSrc="/placeholder-cover.svg"
               />
               <div className="absolute inset-0 bg-gradient-to-t from-black/80 via-transparent to-transparent flex items-end p-4">
                 <span className="text-xs uppercase font-bold tracking-widest text-[#ED1D24]">Bản Quyền Comic Vine</span>
               </div>
-            </div>
+            </Link>
 
             {/* Right Column: Title & Description */}
             <div className="max-w-xl md:ml-12">
@@ -623,8 +635,8 @@ const HeroScene = ({ stories = [] }) => {
               </p>
               <div className="mt-6">
                 <Link
-                  to={`/stories/${featuredStory.id || 1}`}
-                  className="inline-flex items-center gap-2 text-sm font-semibold text-[#ED1D24] hover:text-white transition-colors"
+                  to={`/stories/${featuredStory.id || 2}`}
+                  className="inline-flex items-center gap-2 text-sm font-semibold text-[#ED1D24] hover:text-white transition-colors cursor-pointer py-1"
                 >
                   Xem chi tiết arc này &rarr;
                 </Link>
@@ -634,8 +646,10 @@ const HeroScene = ({ stories = [] }) => {
 
           {/* SLIDE 3: Infinite Stories */}
           <div
-            className={`absolute inset-x-6 sm:inset-x-12 text-center transition-all duration-700 pointer-events-auto flex flex-col items-center justify-center ${
-              activeSlide === 2 ? 'opacity-100 scale-100' : 'opacity-0 scale-95 pointer-events-none'
+            className={`absolute inset-x-6 sm:inset-x-12 text-center transition-all duration-700 flex flex-col items-center justify-center ${
+              activeSlide === 2
+                ? 'opacity-100 scale-100 pointer-events-auto z-20'
+                : 'opacity-0 scale-95 pointer-events-none invisible z-0'
             }`}
           >
             <div className="max-w-3xl mx-auto">
@@ -653,8 +667,10 @@ const HeroScene = ({ stories = [] }) => {
 
           {/* SLIDE 4: Your Next Chapter */}
           <div
-            className={`absolute inset-x-6 sm:inset-x-12 transition-all duration-700 pointer-events-auto ${
-              activeSlide === 3 ? 'opacity-100 translate-y-0' : 'opacity-0 translate-y-8 pointer-events-none'
+            className={`absolute inset-x-6 sm:inset-x-12 transition-all duration-700 ${
+              activeSlide === 3
+                ? 'opacity-100 translate-y-0 pointer-events-auto z-20'
+                : 'opacity-0 translate-y-8 pointer-events-none invisible z-0'
             }`}
           >
             <div className="max-w-2xl">
@@ -670,17 +686,18 @@ const HeroScene = ({ stories = [] }) => {
               <div className="mt-8 flex flex-wrap items-center gap-4">
                 <a
                   href="#story-catalog"
-                  className="px-7 py-3.5 bg-[#ED1D24] hover:bg-[#ff3333] text-white font-bold rounded-xl shadow-xl shadow-[#ED1D24]/30 transition-all flex items-center gap-2 group"
+                  className="px-7 py-3.5 bg-[#ED1D24] hover:bg-[#ff3333] text-white font-bold rounded-xl shadow-xl shadow-[#ED1D24]/30 transition-all flex items-center gap-2 group cursor-pointer"
                 >
                   <BookOpen className="w-4 h-4" />
                   <span>Đọc Ngay Bây Giờ</span>
                   <ChevronRight className="w-4 h-4 group-hover:translate-x-1 transition-transform" />
                 </a>
                 <Link
-                  to="/register"
-                  className="px-6 py-3.5 bg-[#1A1A22] hover:bg-[#23232E] text-gray-200 border border-[#2A2A38] font-semibold rounded-xl transition-all"
+                  to="/subscriptions"
+                  className="px-6 py-3.5 bg-[#1A1A22] hover:bg-[#23232E] text-gray-200 hover:text-white border border-[#2A2A38] hover:border-amber-500/50 font-semibold rounded-xl transition-all flex items-center gap-2 cursor-pointer shadow-lg"
                 >
-                  Đăng Ký Đọc Gói Tháng
+                  <Sparkles className="w-4 h-4 text-amber-400" />
+                  <span>{isAuthenticated ? 'Gói Hội Viên VIP' : 'Đăng Ký Đọc Gói Tháng'}</span>
                 </Link>
               </div>
             </div>

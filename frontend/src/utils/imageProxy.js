@@ -4,7 +4,15 @@
  * to bypass anti-hotlinking 403 Forbidden restrictions and CORS headers.
  */
 
-const API_BASE = 'http://localhost:5000/api';
+const getApiBase = () => {
+  if (typeof import.meta !== 'undefined' && import.meta.env?.VITE_API_URL) {
+    return import.meta.env.VITE_API_URL;
+  }
+  if (typeof window !== 'undefined') {
+    return `${window.location.protocol}//${window.location.hostname}:5000/api`;
+  }
+  return 'http://localhost:5000/api';
+};
 
 /**
  * Returns a proxied URL for any image that requires CORS or hotlink bypass.
@@ -15,6 +23,14 @@ export function getProxiedImageUrl(url) {
   if (!url || typeof url !== 'string') return '';
 
   const cleanUrl = url.trim();
+
+  // Handle local uploaded files (e.g. /uploads/avatars/ or /uploads/chapters/)
+  if (cleanUrl.startsWith('/uploads/')) {
+    const backendBase = typeof window !== 'undefined'
+      ? `${window.location.protocol}//${window.location.hostname}:5000`
+      : 'http://localhost:5000';
+    return `${backendBase}${cleanUrl}`;
+  }
 
   // If already proxied, data URI, or relative path, return as is
   if (
@@ -33,7 +49,7 @@ export function getProxiedImageUrl(url) {
     cleanUrl.startsWith('http://') ||
     cleanUrl.startsWith('https://')
   ) {
-    return `${API_BASE}/image-proxy?url=${encodeURIComponent(cleanUrl)}`;
+    return `${getApiBase()}/image-proxy?url=${encodeURIComponent(cleanUrl)}`;
   }
 
   return cleanUrl;

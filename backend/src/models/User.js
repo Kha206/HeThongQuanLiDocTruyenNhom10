@@ -33,6 +33,14 @@ module.exports = (sequelize, DataTypes) => {
         foreignKey: 'user_id',
         as: 'comments'
       });
+      User.hasMany(models.PasswordReset, {
+        foreignKey: 'user_id',
+        as: 'passwordResets'
+      });
+      User.hasMany(models.StoryRating, {
+        foreignKey: 'user_id',
+        as: 'ratings'
+      });
     }
 
     // Method to check password validity
@@ -75,6 +83,15 @@ module.exports = (sequelize, DataTypes) => {
       type: DataTypes.ENUM('reader', 'admin'),
       allowNull: false,
       defaultValue: 'reader'
+    },
+    status: {
+      type: DataTypes.ENUM('active', 'restricted', 'suspended'),
+      allowNull: false,
+      defaultValue: 'active'
+    },
+    status_reason: {
+      type: DataTypes.STRING(255),
+      allowNull: true
     },
     avatar: {
       type: DataTypes.STRING(500),

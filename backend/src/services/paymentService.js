@@ -16,6 +16,17 @@ class PaymentService {
    * Khởi tạo giao dịch thanh toán (Checkout)
    */
   async createCheckout({ userId, paymentType, itemId, paymentMethod = 'vnpay' }) {
+    const user = await User.findByPk(userId);
+    if (!user) {
+      throw new Error('Người dùng không tồn tại.');
+    }
+    if (user.status === 'restricted') {
+      throw new Error('Tài khoản của bạn đang bị giới hạn, không thể thực hiện giao dịch thanh toán hoặc mua nội dung.');
+    }
+    if (user.status === 'suspended') {
+      throw new Error('Tài khoản của bạn đã bị tạm ngừng hoạt động.');
+    }
+
     let amount = 0;
     let itemTitle = '';
 

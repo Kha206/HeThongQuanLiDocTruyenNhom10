@@ -29,117 +29,110 @@ function formatComicVineDate(rawDate) {
   return new Date().toISOString().split('T')[0];
 }
 
-const KNOWN_ISSUES_MAP = {
-  '1142913': {
-    id: 1142913,
-    comicvine_issue_id: 1142913,
-    issue_number: '21',
-    title: 'Avengers #21',
-    name: 'Avengers #21',
-    release_date: '2025-11-01',
-    cover_image: 'https://comicvine.gamespot.com/a/uploads/scale_medium/11/110017/9912071-wwww.jpg',
-    image: {
-      icon_url: 'https://comicvine.gamespot.com/a/uploads/square_avatar/11/110017/9912071-wwww.jpg',
-      medium_url: 'https://comicvine.gamespot.com/a/uploads/scale_medium/11/110017/9912071-wwww.jpg',
-      original_url: 'https://comicvine.gamespot.com/a/uploads/original/11/110017/9912071-wwww.jpg',
-      screen_url: 'https://comicvine.gamespot.com/a/uploads/scale_medium/11/110017/9912071-wwww.jpg'
-    },
-    volume_id: '168358',
-    volume_name: 'Avengers',
-    content: 'Avengers #21 (Phát hành tháng 11/2025). Khám phá chương truyện đỉnh cao với sự xuất hiện của các siêu anh hùng cùng diễn biến bất ngờ và kịch tính.',
-    description: 'Avengers #21 (Phát hành tháng 11/2025). Khám phá chương truyện đỉnh cao với sự xuất hiện của các siêu anh hùng cùng diễn biến bất ngờ và kịch tính.',
-    character_credits: []
-  },
-  '1142989': {
-    id: 1142989,
-    comicvine_issue_id: 1142989,
-    issue_number: '11',
-    title: 'Avengers #11',
-    name: 'Avengers #11',
-    release_date: '2025-01-01',
-    cover_image: 'https://comicvine.gamespot.com/a/uploads/scale_medium/11/110017/9912057-ww.jpg',
-    image: {
-      icon_url: 'https://comicvine.gamespot.com/a/uploads/square_avatar/11/110017/9912057-ww.jpg',
-      medium_url: 'https://comicvine.gamespot.com/a/uploads/scale_medium/11/110017/9912057-ww.jpg',
-      original_url: 'https://comicvine.gamespot.com/a/uploads/original/11/110017/9912057-ww.jpg',
-      screen_url: 'https://comicvine.gamespot.com/a/uploads/scale_medium/11/110017/9912057-ww.jpg'
-    },
-    volume_id: '168358',
-    volume_name: 'Avengers',
-    content: 'Avengers #11 (Phát hành tháng 01/2025). Những thử thách cam go thử thách tinh thần đồng đội của biệt đội siêu anh hùng.',
-    description: 'Avengers #11 (Phát hành tháng 01/2025). Những thử thách cam go thử thách tinh thần đồng đội của biệt đội siêu anh hùng.',
-    character_credits: []
-  },
-  '1142987': {
-    id: 1142987,
-    comicvine_issue_id: 1142987,
-    issue_number: '13',
-    title: 'Avengers #13',
-    name: 'Avengers #13',
-    release_date: '2025-03-01',
-    cover_image: 'https://comicvine.gamespot.com/a/uploads/scale_medium/11/110017/9912116-wwww.jpg',
-    image: {
-      icon_url: 'https://comicvine.gamespot.com/a/uploads/square_avatar/11/110017/9912116-wwww.jpg',
-      medium_url: 'https://comicvine.gamespot.com/a/uploads/scale_medium/11/110017/9912116-wwww.jpg',
-      original_url: 'https://comicvine.gamespot.com/a/uploads/original/11/110017/9912116-wwww.jpg',
-      screen_url: 'https://comicvine.gamespot.com/a/uploads/scale_medium/11/110017/9912116-wwww.jpg'
-    },
-    volume_id: '168358',
-    volume_name: 'Avengers',
-    content: 'Avengers #13 (Das neue Team im ersten Einsatz!). Diễn biến kịch tính khi biệt đội Avengers với Captain America, She-Hulk, Thor, Hawkeye và các đồng đội cùng xuất trận đối mặt với thử thách mới.',
-    description: 'Avengers #13 (Das neue Team im ersten Einsatz!). Diễn biến kịch tính khi biệt đội Avengers với Captain America, She-Hulk, Thor, Hawkeye và các đồng đội cùng xuất trận đối mặt với thử thách mới.',
-    character_credits: [
-      { name: 'Captain America' },
-      { name: 'She-Hulk' },
-      { name: 'Thor' },
-      { name: 'Hawkeye' },
-      { name: 'Hercules' },
-      { name: 'Wonder Man' },
-      { name: 'Monica Rambeau' },
-      { name: 'Shang-Chi' }
-    ]
-  },
-  '7161': {
-    id: 7161,
-    comicvine_issue_id: 7161,
-    issue_number: '13',
-    title: 'Trapped in... The Castle of Count Nefaria!',
-    name: 'Trapped in... The Castle of Count Nefaria!',
-    release_date: '1965-02-01',
-    cover_image: 'https://comicvine.gamespot.com/a/uploads/scale_medium/0/4/7161-1820-7856-1-the-avengers.jpg',
-    image: {
-      icon_url: 'https://comicvine.gamespot.com/a/uploads/square_avatar/0/4/7161-1820-7856-1-the-avengers.jpg',
-      medium_url: 'https://comicvine.gamespot.com/a/uploads/scale_medium/0/4/7161-1820-7856-1-the-avengers.jpg',
-      original_url: 'https://comicvine.gamespot.com/a/uploads/original/0/4/7161-1820-7856-1-the-avengers.jpg',
-      screen_url: 'https://comicvine.gamespot.com/a/uploads/scale_medium/0/4/7161-1820-7856-1-the-avengers.jpg'
-    },
-    volume_id: '2144',
-    volume_name: 'The Avengers',
-    content: 'Seeking to eliminate the Avengers, Italian aristocrat and Maggia mastermind Count Luchino Nefaria lures the team to his ancestral European estate.',
-    description: 'Seeking to eliminate the Avengers, Italian aristocrat and Maggia mastermind Count Luchino Nefaria lures the team to his ancestral European estate.',
-    character_credits: []
-  },
-  '11270': {
-    id: 11270,
-    comicvine_issue_id: 11270,
-    issue_number: '21',
-    title: 'The Bitter Taste of Defeat!',
-    name: 'The Bitter Taste of Defeat!',
-    release_date: '1965-10-01',
-    cover_image: 'https://comicvine.gamespot.com/a/uploads/scale_medium/0/4/11270-2144-11270-1-avengers.jpg',
-    image: {
-      icon_url: 'https://comicvine.gamespot.com/a/uploads/square_avatar/0/4/11270-2144-11270-1-avengers.jpg',
-      medium_url: 'https://comicvine.gamespot.com/a/uploads/scale_medium/0/4/11270-2144-11270-1-avengers.jpg',
-      original_url: 'https://comicvine.gamespot.com/a/uploads/original/0/4/11270-2144-11270-1-avengers.jpg',
-      screen_url: 'https://comicvine.gamespot.com/a/uploads/scale_medium/0/4/11270-2144-11270-1-avengers.jpg'
-    },
-    volume_id: '2144',
-    volume_name: 'The Avengers',
-    content: 'Power Man (Erik Josten) makes his explosive debut! Empowered by the Enchantress with the ionic ray machinery of Baron Zemo, Power Man frames the Avengers for reckless destruction across the city with deceptive illusions.',
-    description: 'Power Man (Erik Josten) makes his explosive debut! Empowered by the Enchantress with the ionic ray machinery of Baron Zemo, Power Man frames the Avengers for reckless destruction across the city with deceptive illusions.',
-    character_credits: []
-  }
+const CHARACTER_AVATARS = {
+  'spider-man': 'https://comicvine.gamespot.com/a/uploads/scale_small/0/3848/127622-130694-spider-man.jpg',
+  'green goblin': 'https://comicvine.gamespot.com/a/uploads/square_small/12/124259/7758728-7653156-spiderman_850_parrillo_virgin_1024x1024.jpg',
+  'doctor octopus': 'https://comicvine.gamespot.com/a/uploads/square_small/12/124259/8273265-xwo2dl8g0c381.jpg',
+  'sandman': 'https://comicvine.gamespot.com/a/uploads/square_small/11144/111442876/8791112-cerec.jpg',
+  'sandman (flint marko)': 'https://comicvine.gamespot.com/a/uploads/square_small/11144/111442876/8791112-cerec.jpg',
+  'lizard': 'https://comicvine.gamespot.com/a/uploads/square_small/11144/111442876/8791115-dfgeges.jpg',
+  'lizard (dr. curt connors)': 'https://comicvine.gamespot.com/a/uploads/square_small/11144/111442876/8791115-dfgeges.jpg',
+  'electro': 'https://comicvine.gamespot.com/a/uploads/square_small/11144/111442876/8791114-fbege.jpg',
+  'electro (max dillon)': 'https://comicvine.gamespot.com/a/uploads/square_small/11144/111442876/8791114-fbege.jpg',
+  'chameleon': 'https://comicvine.gamespot.com/a/uploads/scale_small/12/124259/8002168-250072_1446175_1.jpg',
+  'doctor doom': 'https://comicvine.gamespot.com/a/uploads/scale_small/4/49448/1724175-doctor_doom.jpg',
+  'captain america': 'https://comicvine.gamespot.com/a/uploads/scale_small/3/33913/921103-108_the_marvels_project_4_epting_variant_.jpg',
+  'iron man': 'https://comicvine.gamespot.com/a/uploads/scale_small/2/26163/504218-iron_man_armor_mk_i_001.png',
+  'thor': 'https://comicvine.gamespot.com/a/uploads/scale_small/11/117763/2593422-thor1.png',
+  'hulk': 'https://comicvine.gamespot.com/a/uploads/scale_small/1/15776/9971293-hulk.jpg',
+  'thanos': 'https://comicvine.gamespot.com/a/uploads/scale_small/0/394/77995-21433-thanos.png',
+  'wolverine': 'https://comicvine.gamespot.com/a/uploads/scale_small/4/49076/1863600-200px_wolverine_first_claws.jpg',
+  'j. jonah jameson': 'https://comicvine.gamespot.com/a/uploads/scale_small/6/64137/2725615-asm2_jj.jpg',
+  'aunt may': 'https://comicvine.gamespot.com/a/uploads/scale_small/11/117763/2733264-marvel_knights_spider_man__4___page_3.jpg',
+  'flash thompson': 'https://comicvine.gamespot.com/a/uploads/scale_small/12/124259/8056388-extreme_carnage_alpha_vol_1_1_616_comics_and_jolzar_collectibles_exclusive_virgin_variant.jpg',
+  'human torch': 'https://comicvine.gamespot.com/a/uploads/scale_small/12/124259/8338234-b5866c56-93ff-4db0-aeca-9844ff09eac3_rw_1200.jpg',
+  'reed richards': 'https://comicvine.gamespot.com/a/uploads/scale_small/11112/111123579/7316596-fantastic_four_vol_6_1_mr._fantastic_variant_textless.jpg',
+  'ant-man': 'https://comicvine.gamespot.com/a/uploads/scale_small/11/117763/2930199-talestoastonish049.jpg',
+  'wasp': 'https://comicvine.gamespot.com/a/uploads/scale_small/1/15776/10190293-wasp.jpg',
+  'loki': 'https://comicvine.gamespot.com/a/uploads/scale_small/2/28391/2713359-128.jpg',
+  'cyclops': 'https://comicvine.gamespot.com/a/uploads/scale_small/11/117763/2930260-talestoastonish050.jpg',
+  'jean grey': 'https://comicvine.gamespot.com/a/uploads/scale_small/11/117763/2930269-talestoastonish051.jpg',
+  'magneto': 'https://comicvine.gamespot.com/a/uploads/scale_small/11/117763/2930271-talestoastonish052.jpg',
+  'silver surfer': 'https://comicvine.gamespot.com/a/uploads/scale_small/7/71975/2215796-047.jpg',
+  'adam warlock': 'https://comicvine.gamespot.com/a/uploads/scale_small/7/71975/2215797-048.jpg',
+  'mephisto': 'https://comicvine.gamespot.com/a/uploads/scale_small/7/71975/2215798-049.jpg',
+  'nebula': 'https://comicvine.gamespot.com/a/uploads/scale_small/7/71975/2215799-050.jpg',
+  'mistress death': 'https://comicvine.gamespot.com/a/uploads/scale_small/7/71975/2215800-051.jpg',
+  'beyonder': 'https://comicvine.gamespot.com/a/uploads/scale_small/6/67663/2754348-04_cropped.jpg',
+  'mallen': 'https://comicvine.gamespot.com/a/uploads/scale_small/11/118064/4096618-9691217218-11686.jpg',
+  'maya hansen': 'https://comicvine.gamespot.com/a/uploads/scale_small/11/118064/4096612-7617155689-11686.jpg',
+  'beast': 'https://comicvine.gamespot.com/a/uploads/scale_medium/11112/111123579/7166569-x-force_vol_6_6_textless.jpg',
+  'professor x': 'https://comicvine.gamespot.com/a/uploads/scale_small/8/83882/2039151-260136_185357_professor_x.jpg',
+  'quicksilver': 'https://comicvine.gamespot.com/a/uploads/scale_small/11/117763/2594178-quicks.png',
+  'scarlet witch': 'https://comicvine.gamespot.com/a/uploads/scale_small/1/15776/9986552-scarlet_witch.jpg',
+  'doctor strange': 'https://comicvine.gamespot.com/a/uploads/square_small/12/124259/8753901-ezgif-3-69b95d2d1b.jpg',
+  'she-hulk': 'https://comicvine.gamespot.com/a/uploads/scale_small/1/11307/448626-she_hulk_01_00.jpg',
+  'hawkeye': 'https://comicvine.gamespot.com/a/uploads/scale_small/0/3133/108921-190878-hawkeye.jpg',
+  'tinkerer': 'https://comicvine.gamespot.com/a/uploads/square_small/10/101073/2055173-tinkerer.png',
+  'living brain': 'https://comicvine.gamespot.com/a/uploads/square_small/0/229/96809-38759-living-brain.jpg',
+  'montana': 'https://comicvine.gamespot.com/a/uploads/square_small/8/84205/3863997-301372-160841-montana.jpg',
+  'ox': 'https://comicvine.gamespot.com/a/uploads/square_small/8/84205/3864141-134835-31206-the-ox.jpg',
+  'fancy dan': 'https://comicvine.gamespot.com/a/uploads/square_small/2/26485/522489-fancy_dan.jpg',
+  'betty brant': 'https://comicvine.gamespot.com/a/uploads/square_small/0/5599/180421-38371-betty-brant.jpg',
+  'hercules': 'https://comicvine.gamespot.com/a/uploads/square_small/10/100239/2849284-__addme___marvel_milestones_v9999__2___page_1.jpg',
+  'goliath (bill foster)': 'https://comicvine.gamespot.com/a/uploads/square_small/10/100555/2788526-2788520-1357297442wonder_comics_1_pg_22.jpg',
+  'punisher': 'https://comicvine.gamespot.com/a/uploads/square_small/0/5756/684096-pfc_066_01.jpg',
+  'black panther': 'https://comicvine.gamespot.com/a/uploads/square_small/11128/111284329/8780700-0001.jpg',
+  'speedball (penance)': 'https://comicvine.gamespot.com/a/uploads/square_small/12/124259/9998859-large-4357933.jpg',
+  'eternity': 'https://comicvine.gamespot.com/a/uploads/square_small/1/15776/440685-eternaltwilight.jpg',
+  'living tribunal': 'https://comicvine.gamespot.com/a/uploads/square_small/0/77/148172-123031-living-tribunal.jpg',
+  'gamora': 'https://comicvine.gamespot.com/a/uploads/square_small/12/124259/9357825-ezgif-7-563a93dc1b.jpg',
+  'pip the troll': 'https://comicvine.gamespot.com/a/uploads/square_small/3/31666/2695349-xfact2005246cov_col.jpg',
+  'namor the sub-mariner': 'https://comicvine.gamespot.com/a/uploads/square_small/12/124259/7642506-0083aa18cc79f26640e29a8594e2e51e.jpg',
+  'namor': 'https://comicvine.gamespot.com/a/uploads/square_small/0/4/29367-4406-32633-1-namor-the-sub-marin.jpg',
+  'baron zemo': 'https://comicvine.gamespot.com/a/uploads/square_small/11156/111564182/9796396-zemoimmonenre-size.jpg',
+  'black knight': 'https://comicvine.gamespot.com/a/uploads/square_small/6/67663/5254526-01.jpg',
+  'melter': 'https://comicvine.gamespot.com/a/uploads/square_small/12/124259/8115760-morbius_vol_1_5_textless.jpg',
+  'enchantress': 'https://comicvine.gamespot.com/a/uploads/square_small/12/124259/9314849-large-9836064.jpg',
+  'executioner': 'https://comicvine.gamespot.com/a/uploads/square_small/12/124259/9649791-large-1556556.jpg',
+  'kang the conqueror': 'https://comicvine.gamespot.com/a/uploads/square_small/6/67663/8111353-01.jpg',
+  'wonder man (simon williams)': 'https://comicvine.gamespot.com/a/uploads/square_small/11159/111592040/9311802-img_4496.jpeg',
+  'wonder man': 'https://comicvine.gamespot.com/a/uploads/square_small/11159/111592040/9298021-img_4328.jpeg',
+  'immortus': 'https://comicvine.gamespot.com/a/uploads/square_small/11115/111158055/7196385-immortus02.jpg',
+  'sal kennedy': 'https://comicvine.gamespot.com/a/uploads/square_small/1/11635/334619-36740-sal-kennedy.jpeg',
+  'sentry': 'https://comicvine.gamespot.com/a/uploads/square_small/1/10812/1487325-val_hd.jpg',
+  'nick fury': 'https://comicvine.gamespot.com/a/uploads/square_small/0/3848/5808855-stl025079.jpg',
+  'marvel girl (jean grey)': 'https://comicvine.gamespot.com/a/uploads/square_small/6/67663/6084537-01.jpg',
+  'angel': 'https://comicvine.gamespot.com/a/uploads/square_small/0/5344/1288499-rsz_x_campus_1_0012.jpg',
+  'iceman': 'https://comicvine.gamespot.com/a/uploads/square_small/11161/111612243/9579059-iceman.jpg',
+  'vanisher': 'https://comicvine.gamespot.com/a/uploads/square_small/11119/111198274/4251552-vanisher.jpg',
+  'blob (fred dukes)': 'https://comicvine.gamespot.com/a/uploads/square_small/0/3125/2213755-fred1.jpg',
+  'blob': 'https://comicvine.gamespot.com/a/uploads/square_small/11161/111612243/9489486-6848530197-GYGTkWUXUAAQ-sn.jpg',
+  'toad': 'https://comicvine.gamespot.com/a/uploads/square_small/12/124259/7040861-toad.jpg',
+  'unus the untouchable': 'https://comicvine.gamespot.com/a/uploads/square_small/11/111746/7129223-gunther_bain_%28earth-616%29_from_all-new_x-men_vol_2_19_001.jpg',
+  'ka-zar': 'https://comicvine.gamespot.com/a/uploads/square_small/1/15776/10147061-ka-zar.jpg',
+  'shadrak': 'https://comicvine.gamespot.com/a/uploads/square_small/0/5344/2828232-shadrak_01.jpg',
+  'titania': 'https://comicvine.gamespot.com/a/uploads/square_small/11146/111464511/8635835-mary_macpherran_%28earth-616%29_from_she-hulk_vol_4_1_001.jpg',
+  'galactus': 'https://comicvine.gamespot.com/a/uploads/square_small/11112/111121983/6106786-9280042005-image_gallery',
+  'monica rambeau': 'https://comicvine.gamespot.com/a/uploads/square_small/12/124259/8750592-ezgif-2-7f56b04d7b.jpg',
+  'shang-chi': 'https://comicvine.gamespot.com/a/uploads/square_small/11141/111414280/8458264-6757923068-clean.jpg',
+  'spider-man (black suit)': 'https://comicvine.gamespot.com/a/uploads/square_small/6/67663/7175957-01.jpg',
+  'doctor doom (god doom)': 'https://comicvine.gamespot.com/a/uploads/square_small/0/2747/113913-18532-108893-1-doom-the-emperor-re.JPG',
+  'tony stark': 'https://comicvine.gamespot.com/a/uploads/square_small/6/67663/6477334-01.jpg',
+  'iron man (tony stark)': 'https://comicvine.gamespot.com/a/uploads/square_small/11161/111615891/9345991-1.jpg',
+  'thor (clone ragnarok)': 'https://comicvine.gamespot.com/a/uploads/square_small/11111/111113340/8071870-00_rag.jpg',
+  'thor (present)': 'https://comicvine.gamespot.com/a/uploads/square_small/6/67663/6489021-02.jpg',
+  'young thor': 'https://comicvine.gamespot.com/a/uploads/square_small/6/67663/4412560-01.jpg',
+  'young thor (viking era)': 'https://comicvine.gamespot.com/a/uploads/square_small/4/48397/1063259-title_thor.jpg',
+  'king thor': 'https://comicvine.gamespot.com/a/uploads/square_small/6/67663/6799266-10.jpg',
+  'king thor (old all-father)': 'https://comicvine.gamespot.com/a/uploads/square_small/6/67663/7284905-01.jpg',
+  'avenger thor': 'https://comicvine.gamespot.com/a/uploads/square_small/6/67663/6586820-5342931570-70941.jpg',
+  'gorr the god butcher': 'https://comicvine.gamespot.com/a/uploads/square_small/6/67663/3073997-01.jpg',
+  'gorr': 'https://comicvine.gamespot.com/a/uploads/square_small/6/66303/3107937-screen%20shot%202013-06-14%20at%202.17.20%20pm.png',
+  'vulture (adrian toomes)': 'https://comicvine.gamespot.com/a/uploads/square_small/13/135098/8587010-adrain-cat.jpg',
+  'vulture': 'https://comicvine.gamespot.com/a/uploads/square_small/6/67663/2191259-07.jpg'
 };
+
 
 class ComicVineService {
   constructor(apiKey) {
@@ -152,6 +145,52 @@ class ComicVineService {
       },
       timeout: 15000
     });
+  }
+
+  /**
+   * Normalizes character credits ensuring authentic avatar mapping and strictly NO duplicates
+   */
+  normalizeCharacterCredits(characterCredits) {
+    if (!Array.isArray(characterCredits)) return [];
+    const seenUrls = new Set();
+    return characterCredits.map((c) => {
+      if (!c) return null;
+      const cleanName = (typeof c === 'string' ? c : c.name || '').trim();
+      if (!cleanName) return null;
+      const lower = cleanName.toLowerCase();
+      let icon = null;
+
+      // 1. If provided an authentic icon from ComicVine character API/proxy
+      if (typeof c === 'object' && c.icon_url) {
+        const rawIcon = c.icon_url.trim();
+        const isBorrowed = Object.entries(CHARACTER_AVATARS).some(([nameKey, url]) => {
+          return url === rawIcon && !lower.includes(nameKey) && !nameKey.includes(lower);
+        });
+        if (!isBorrowed && !rawIcon.includes('talestoastonish') && !rawIcon.includes('strangers-in-paradis')) {
+          icon = rawIcon;
+        }
+      }
+
+      // 2. Fallback to dictionary if no icon provided
+      if (!icon) {
+        icon = CHARACTER_AVATARS[lower] || null;
+      }
+
+      // 3. Strictly deduplicate: no two different characters may share the exact same icon URL
+      if (icon) {
+        if (seenUrls.has(icon)) {
+          icon = null;
+        } else {
+          seenUrls.add(icon);
+        }
+      }
+
+      return {
+        id: (c && typeof c === 'object' && c.id) ? c.id : null,
+        name: cleanName,
+        icon_url: icon
+      };
+    }).filter(Boolean);
   }
 
   /**
@@ -248,260 +287,263 @@ class ComicVineService {
   }
 
   /**
+   * Parse ComicVine character URL and extract the character ID (digits after 4005-)
+   * E.g. https://comicvine.gamespot.com/thor/4005-2268/ => 2268
+   */
+  parseComicVineCharacterUrl(rawUrl) {
+    if (!rawUrl || typeof rawUrl !== 'string') {
+      const err = new Error('Link không hợp lệ, vui lòng dán đúng link nhân vật từ comicvine.gamespot.com (chứa 4005-ID)');
+      err.statusCode = 400;
+      throw err;
+    }
+    const trimmed = rawUrl.trim();
+    if (!trimmed.includes('comicvine.gamespot.com') && !/4005-\d+/.test(trimmed)) {
+      const err = new Error('Link không hợp lệ, vui lòng dán đúng link nhân vật từ comicvine.gamespot.com (chứa 4005-ID)');
+      err.statusCode = 400;
+      throw err;
+    }
+    const match = trimmed.match(/\/4005-(\d+)/) || trimmed.match(/4005-(\d+)/);
+    if (!match || !match[1]) {
+      const err = new Error('Link không hợp lệ, vui lòng dán đúng link nhân vật từ comicvine.gamespot.com (chứa 4005-ID)');
+      err.statusCode = 400;
+      throw err;
+    }
+    return match[1];
+  }
+
+  /**
+   * Fetch single character details by URL or ID from ComicVine
+   */
+  async fetchCharacterByUrl(rawUrl) {
+    const charId = this.parseComicVineCharacterUrl(rawUrl);
+    const activeKey = this.apiKey || process.env.COMICVINE_API_KEY;
+    if (!activeKey) {
+      throw new Error('COMICVINE_API_KEY is not defined in .env');
+    }
+
+    try {
+      const response = await this.client.get(`/character/4005-${charId}/`, {
+        params: {
+          api_key: activeKey,
+          format: 'json',
+          field_list: 'id,name,image'
+        }
+      });
+
+      if (!response.data || response.data.status_code !== 1) {
+        const errorMsg = response.data?.error || `ComicVine status code ${response.data?.status_code}`;
+        const err = new Error(`ComicVine API trả về lỗi: ${errorMsg}`);
+        err.statusCode = response.data?.status_code === 100 ? 401 : (response.data?.status_code === 101 ? 404 : 400);
+        throw err;
+      }
+
+      const res = response.data.results;
+      if (!res) {
+        const err = new Error('Không tìm thấy thông tin nhân vật này trên ComicVine');
+        err.statusCode = 404;
+        throw err;
+      }
+
+      const iconUrl = res.image?.icon_url ||
+                      res.image?.square_avatar ||
+                      res.image?.small_url ||
+                      res.image?.medium_url ||
+                      res.image?.original_url ||
+                      CHARACTER_AVATARS[res.name?.toLowerCase()] ||
+                      null;
+
+      return {
+        id: res.id || parseInt(charId, 10),
+        name: res.name || '',
+        icon_url: iconUrl
+      };
+    } catch (apiErr) {
+      if (apiErr.response?.status === 401 || apiErr.comicVineStatusCode === 100) {
+        const err = new Error('COMICVINE_API_KEY không hợp lệ hoặc đã hết hạn.');
+        err.statusCode = 401;
+        throw err;
+      }
+      if (apiErr.response?.status === 404 || apiErr.comicVineStatusCode === 101) {
+        const err = new Error('Không tìm thấy nhân vật này trên ComicVine');
+        err.statusCode = 404;
+        throw err;
+      }
+      if (apiErr.response?.status === 420 || apiErr.response?.status === 429 || apiErr.comicVineStatusCode === 107) {
+        const err = new Error('Đã vượt quá giới hạn lượt gọi ComicVine API. Vui lòng thử lại sau.');
+        err.statusCode = 429;
+        throw err;
+      }
+      throw apiErr;
+    }
+  }
+
+  /**
    * Fetch issue details directly using its ComicVine URL
    */
   async fetchIssueByUrl(rawUrl) {
     const issueId = this.parseComicVineUrl(rawUrl);
 
-    // 1. Check Known Issues Map & Pre-seeded Catalog first for instant, accurate return
-    if (KNOWN_ISSUES_MAP[String(issueId)]) {
-      return KNOWN_ISSUES_MAP[String(issueId)];
-    }
-
-    try {
-      const { MARVEL_VOLUMES_CATALOG } = require('../../scripts/seedFromComicVine');
-      for (const vol of MARVEL_VOLUMES_CATALOG) {
-        if (vol.issues) {
-          const found = vol.issues.find(iss => String(iss.comicvine_issue_id) === String(issueId));
-          if (found) {
-            return {
-              id: found.comicvine_issue_id,
-              comicvine_issue_id: found.comicvine_issue_id,
-              issue_number: String(found.chapter_number),
-              title: found.title || `Issue #${found.chapter_number}`,
-              name: found.name || found.title || `Issue #${found.chapter_number}`,
-              release_date: found.release_date,
-              cover_image: found.cover_image,
-              image: {
-                icon_url: found.cover_image,
-                medium_url: found.cover_image,
-                original_url: found.cover_image
-              },
-              volume_id: String(vol.comicvine_volume_id || vol.comicvine_id || ''),
-              volume_name: vol.title,
-              content: found.content || '',
-              description: found.content || '',
-              character_credits: found.character_credits || []
-            };
-          }
-        }
-      }
-    } catch (catErr) {
-      console.warn('Catalog check error:', catErr.message);
-    }
-
-    // 2. Try ComicVine API if API key is configured
-    if (this.apiKey) {
+    let activeKey = (this.apiKey || process.env.COMICVINE_API_KEY || '').trim();
+    if (!activeKey) {
       try {
-        await sleep(1200);
-        const response = await this.client.get(`/issue/4000-${issueId}/`, {
-          params: {
-            api_key: this.apiKey,
-            format: 'json'
-          }
-        });
-        const res = response.data && response.data.results ? response.data.results : null;
-        if (res) {
-          const coverMedium = res.image?.medium_url || res.image?.original_url || '';
-          return {
-            id: res.id,
-            comicvine_issue_id: res.id,
-            issue_number: String(res.issue_number || '1'),
-            title: res.name || (res.issue_number ? `Issue #${res.issue_number}` : 'ComicVine Issue'),
-            name: res.name || (res.issue_number ? `Issue #${res.issue_number}` : 'ComicVine Issue'),
-            release_date: res.cover_date || res.in_store_date || new Date().toISOString().split('T')[0],
-            cover_image: coverMedium,
-            image: {
-              icon_url: res.image?.icon_url || coverMedium,
-              medium_url: coverMedium,
-              original_url: res.image?.original_url || coverMedium,
-              screen_url: res.image?.screen_url || coverMedium
-            },
-            volume_id: res.volume?.id ? String(res.volume.id) : null,
-            volume_name: res.volume?.name || null,
-            content: res.description ? res.description.replace(/<[^>]*>?/gm, '').trim() : '',
-            description: res.description ? res.description.replace(/<[^>]*>?/gm, '').trim() : '',
-            character_credits: (res.character_credits || []).map(c => ({ name: c.name }))
-          };
+        require('dotenv').config();
+        activeKey = (process.env.COMICVINE_API_KEY || '').trim();
+        if (activeKey) {
+          this.apiKey = activeKey;
         }
-      } catch (apiErr) {
-        if (apiErr.response?.status === 404) {
-          const notFoundErr = new Error('Không tìm thấy issue này trên ComicVine');
-          notFoundErr.statusCode = 404;
-          throw notFoundErr;
-        }
-        console.warn('ComicVine API fetch error:', apiErr.message);
-      }
+      } catch (e) {}
     }
 
-    // 3. Try Chrome CDP Scraper in dedicated isolated tab
+    if (!activeKey) {
+      const err = new Error('Thiếu COMICVINE_API_KEY trong file backend/.env. Vui lòng thêm API key để lấy dữ liệu từ ComicVine.');
+      err.statusCode = 500;
+      throw err;
+    }
+
     try {
-      const cdpData = await this.scrapeIssuePageViaCDP(rawUrl.trim());
-      if (cdpData) {
-        if (cdpData.notFound || (!cdpData.img && !cdpData.volumeId && !cdpData.issueNumber)) {
-          const notFoundErr = new Error('Không tìm thấy issue này trên ComicVine');
-          notFoundErr.statusCode = 404;
-          throw notFoundErr;
+      await sleep(1200); // 1.2s delay to strictly respect 200 req/hr rate limit
+      const response = await this.client.get(`/issue/4000-${issueId}/`, {
+        params: {
+          api_key: activeKey,
+          format: 'json',
+          field_list: 'name,issue_number,cover_date,store_date,description,image,character_credits,volume'
         }
+      });
 
-        const rawImg = cdpData.img || '';
-        const mediumImg = rawImg.replace(/\/scale_[a-z_]+\//, '/scale_medium/');
-        const originalImg = rawImg.replace(/\/scale_[a-z_]+\//, '/original/');
-        const iconImg = rawImg.replace(/\/scale_[a-z_]+\//, '/square_avatar/');
+      // Temporary console.log at backend/src/services/comicVineService.js:304 (can be deleted later)
+      console.log(`=== [COMICVINE TEMPORARY LOG - comicVineService.js:304] issueId: ${issueId}, status_code: ${response.data?.status_code}, error: ${response.data?.error || null} ===`);
 
-        const parsedDate = formatComicVineDate(cdpData.releaseDate);
-
-        return {
-          id: parseInt(issueId, 10),
-          comicvine_issue_id: parseInt(issueId, 10),
-          issue_number: cdpData.issueNumber ? String(cdpData.issueNumber) : '1',
-          title: cdpData.title || `Issue #${cdpData.issueNumber || issueId}`,
-          name: cdpData.title || `Issue #${cdpData.issueNumber || issueId}`,
-          release_date: parsedDate,
-          cover_image: mediumImg,
-          image: {
-            icon_url: iconImg,
-            medium_url: mediumImg,
-            original_url: originalImg,
-            screen_url: mediumImg
-          },
-          volume_id: cdpData.volumeId ? String(cdpData.volumeId) : null,
-          volume_name: cdpData.volumeTitle || null,
-          content: cdpData.desc || `${cdpData.title || 'Issue'}. Chương truyện từ ComicVine với nội dung hấp dẫn và kịch tính.`,
-          description: cdpData.desc || `${cdpData.title || 'Issue'}. Chương truyện từ ComicVine với nội dung hấp dẫn và kịch tính.`,
-          character_credits: []
-        };
+      if (!response.data || response.data.status_code !== 1) {
+        const errorMsg = response.data?.error || `ComicVine status code ${response.data?.status_code}`;
+        const err = new Error(`ComicVine API trả về lỗi: ${errorMsg}`);
+        err.statusCode = response.data?.status_code === 100 ? 401 : (response.data?.status_code === 101 ? 404 : 400);
+        err.comicVineStatusCode = response.data?.status_code;
+        throw err;
       }
-    } catch (cdpErr) {
-      if (cdpErr.statusCode === 404) throw cdpErr;
-      console.warn('CDP scraping fallback error:', cdpErr.message);
-    }
 
-    // If none found
-    const notFoundErr = new Error('Không tìm thấy issue này trên ComicVine');
-    notFoundErr.statusCode = 404;
-    throw notFoundErr;
-  }
+      const res = response.data.results;
+      if (!res) {
+        const err = new Error('Không tìm thấy thông tin issue này trên ComicVine');
+        err.statusCode = 404;
+        throw err;
+      }
 
-  /**
-   * Scrapes live ComicVine page via Chrome CDP on port 9222
-   */
-  async scrapeIssuePageViaCDP(targetUrl) {
-    const http = require('http');
-    const WebSocket = require('ws');
+      const issueNumber = res.issue_number ? String(res.issue_number) : '';
+      const volumeName = res.volume?.name || '';
+      const name = res.name || (issueNumber ? `${volumeName || 'Issue'} #${issueNumber}` : '');
 
-    return new Promise((resolve) => {
-      const timeout = setTimeout(() => resolve(null), 8000);
+      // coverUrl: prioritize image.original_url, fallback super_url / medium_url
+      const coverUrl = res.image?.original_url ||
+                       res.image?.super_url ||
+                       res.image?.medium_url ||
+                       res.image?.small_url ||
+                       res.image?.icon_url ||
+                       '';
 
-      // Create a dedicated tab for scraping
-      const req = http.request({
-        hostname: '127.0.0.1',
-        port: 9222,
-        path: `/json/new?${encodeURIComponent(targetUrl)}`,
-        method: 'PUT'
-      }, (res) => {
-        let data = '';
-        res.on('data', (d) => (data += d));
-        res.on('end', async () => {
-          let tabId = null;
-          try {
-            const page = JSON.parse(data);
-            tabId = page.id;
-            if (!page || !page.webSocketDebuggerUrl) {
-              clearTimeout(timeout);
-              return resolve(null);
+      // releaseDate: store_date hoặc cover_date, định dạng YYYY-MM-DD
+      let releaseDate = '';
+      const rawDate = res.store_date || res.cover_date || '';
+      if (rawDate) {
+        const d = new Date(rawDate);
+        if (!isNaN(d.getTime())) {
+          releaseDate = d.toISOString().split('T')[0];
+        } else {
+          const match = String(rawDate).match(/^(\d{4}-\d{2}-\d{2})/);
+          if (match) releaseDate = match[1];
+        }
+      }
+
+      // description: strip HTML
+      const description = res.description
+        ? res.description.replace(/<[^>]*>?/gm, '').trim()
+        : '';
+
+      // character_credits: list of characters with authentic images (max 8)
+      const rawCredits = Array.isArray(res.character_credits) ? res.character_credits.slice(0, 8) : [];
+      let charImageMap = new Map();
+      const charIds = rawCredits.map(c => c.id).filter(Boolean);
+
+      if (charIds.length > 0) {
+        try {
+          const batchRes = await this.client.get('/characters/', {
+            params: {
+              api_key: activeKey,
+              format: 'json',
+              filter: `id:${charIds.join('|')}`,
+              field_list: 'id,name,image'
             }
-
-            const ws = new WebSocket(page.webSocketDebuggerUrl);
-            ws.on('error', () => {
-              clearTimeout(timeout);
-              resolve(null);
+          });
+          if (batchRes.data && batchRes.data.results) {
+            batchRes.data.results.forEach(c => {
+              const icon = c.image?.icon_url ||
+                           c.image?.square_avatar ||
+                           c.image?.small_url ||
+                           c.image?.medium_url ||
+                           c.image?.original_url;
+              if (icon) charImageMap.set(c.id, icon);
             });
-
-            await new Promise((r) => ws.on('open', r));
-
-            const send = (method, params = {}) =>
-              new Promise((resSend, rejSend) => {
-                const id = Math.floor(Math.random() * 1000000);
-                const h = (d) => {
-                  const m = JSON.parse(d);
-                  if (m.id === id) {
-                    ws.off('message', h);
-                    if (m.error) rejSend(m.error);
-                    else resSend(m.result);
-                  }
-                };
-                ws.on('message', h);
-                ws.send(JSON.stringify({ id, method, params }));
-              });
-
-            await send('Page.enable');
-            await new Promise((r) => setTimeout(r, 3200));
-
-            const evalRes = await send('Runtime.evaluate', {
-              expression: `(() => {
-                const docTitle = (document.title || '').toLowerCase();
-                const h1Text = (document.querySelector('h1')?.innerText || '').toLowerCase();
-                const bodyText = (document.body?.innerText || '').toLowerCase();
-                if (docTitle.includes('404') || docTitle.includes('not found') || h1Text.includes('404') || h1Text.includes('not found') || bodyText.includes('404 page not found') || bodyText.includes('no issue found')) {
-                  return { notFound: true };
-                }
-                const getMeta = (prop) => document.querySelector('meta[property="' + prop + '"]')?.content || document.querySelector('meta[name="' + prop + '"]')?.content;
-                const img = getMeta('og:image') || document.querySelector('.wiki-boxart img, .imgboxart img')?.src || document.querySelector('.art-module img')?.src;
-                const title = document.querySelector('h1, .wiki-title')?.innerText || getMeta('og:title');
-                const desc = getMeta('og:description') || document.querySelector('.wiki-deck')?.innerText;
-                
-                const volLink = document.querySelector('a[href*="/4050-"]');
-                const volumeId = volLink ? volLink.href.match(/4050-(\\d+)/)?.[1] : null;
-                const volumeTitle = volLink?.innerText;
-
-                const numMatch = (title && title.match(/#(\\d+)/)) || bodyText.match(/Issue Number\\s*(\\d+)/i);
-                const issueNumber = numMatch ? numMatch[1] : null;
-
-                if (!img && !volumeId && !issueNumber) {
-                  return { notFound: true };
-                }
-
-                const dateMatch = bodyText.match(/Cover Date\\s*([A-Za-z]+\\s+\\d{4})/i) ||
-                                  bodyText.match(/In Store Date\\s*([A-Za-z]+\\s+\\d{1,2},\\s+\\d{4})/i) ||
-                                  bodyText.match(/(January|February|March|April|May|June|July|August|September|October|November|December)\\s+\\d{4}/i);
-                const releaseDate = dateMatch ? dateMatch[1] : null;
-
-                return {
-                  title: title ? title.trim() : null,
-                  issueNumber,
-                  img,
-                  desc: desc ? desc.trim() : null,
-                  volumeId,
-                  volumeTitle: volumeTitle ? volumeTitle.trim() : null,
-                  releaseDate,
-                  notFound: false
-                };
-              })()`,
-              returnByValue: true
-            });
-
-            ws.close();
-            if (tabId) {
-              http.get(`http://127.0.0.1:9222/json/close/${tabId}`, () => {});
-            }
-            clearTimeout(timeout);
-            resolve(evalRes?.result?.value || null);
-          } catch (err) {
-            if (tabId) {
-              http.get(`http://127.0.0.1:9222/json/close/${tabId}`, () => {});
-            }
-            clearTimeout(timeout);
-            resolve(null);
           }
-        });
+        } catch (batchErr) {
+          console.warn('Could not batch fetch character images from ComicVine:', batchErr.message);
+        }
+      }
+
+      const mappedCredits = rawCredits.map(c => {
+        const name = (typeof c === 'string' ? c : c.name || '').trim();
+        const id = c.id || null;
+        const icon = (id && charImageMap.get(id)) || (c.image?.icon_url) || CHARACTER_AVATARS[name.toLowerCase()] || null;
+        return { id, name, icon_url: icon };
       });
-      req.on('error', () => {
-        clearTimeout(timeout);
-        resolve(null);
-      });
-      req.end();
-    });
+
+      const character_credits = this.normalizeCharacterCredits(mappedCredits);
+      const characters = character_credits.map(c => c.name);
+
+      return {
+        id: res.id || parseInt(issueId, 10),
+        comicvine_issue_id: res.id || parseInt(issueId, 10),
+        issueNumber,
+        issue_number: issueNumber,
+        name,
+        title: name,
+        coverUrl,
+        cover_image: coverUrl,
+        image: {
+          icon_url: res.image?.icon_url || coverUrl,
+          medium_url: res.image?.medium_url || coverUrl,
+          original_url: res.image?.original_url || coverUrl,
+          super_url: res.image?.super_url || coverUrl
+        },
+        releaseDate,
+        release_date: releaseDate,
+        description,
+        content: description,
+        characters,
+        character_credits,
+        volumeName,
+        volume_name: volumeName,
+        volume_id: res.volume?.id ? String(res.volume.id) : null
+      };
+    } catch (apiErr) {
+      // Temporary console.log at backend/src/services/comicVineService.js:380 (can be deleted later)
+      console.log(`=== [COMICVINE TEMPORARY LOG - comicVineService.js:380] issueId: ${issueId}, status_code: ${apiErr.comicVineStatusCode || apiErr.response?.data?.status_code || apiErr.response?.status || null}, error: ${apiErr.message} ===`);
+
+      if (apiErr.response?.status === 401 || apiErr.comicVineStatusCode === 100) {
+        const err = new Error('COMICVINE_API_KEY không hợp lệ hoặc đã hết hạn (status_code: 100). Vui lòng kiểm tra lại API key.');
+        err.statusCode = 401;
+        throw err;
+      }
+      if (apiErr.response?.status === 404 || apiErr.comicVineStatusCode === 101) {
+        const err = new Error('Không tìm thấy issue này trên ComicVine');
+        err.statusCode = 404;
+        throw err;
+      }
+      if (apiErr.response?.status === 420 || apiErr.response?.status === 429 || apiErr.comicVineStatusCode === 107) {
+        const err = new Error('Đã vượt quá giới hạn lượt gọi ComicVine API (Rate Limit 200 req/giờ). Vui lòng thử lại sau.');
+        err.statusCode = 429;
+        throw err;
+      }
+      throw apiErr;
+    }
   }
 
   /**

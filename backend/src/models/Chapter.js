@@ -59,7 +59,15 @@ module.exports = (sequelize, DataTypes) => {
     },
     pages_data: {
       type: DataTypes.JSON,
-      allowNull: true
+      allowNull: true,
+      get() {
+        const val = this.getDataValue('pages_data');
+        if (!val) return [];
+        if (typeof val === 'string') {
+          try { return JSON.parse(val); } catch (e) { return []; }
+        }
+        return val;
+      }
     },
     cover_image: {
       type: DataTypes.STRING(1000),
@@ -71,7 +79,15 @@ module.exports = (sequelize, DataTypes) => {
     },
     character_credits: {
       type: DataTypes.JSON,
-      allowNull: true
+      allowNull: true,
+      get() {
+        const val = this.getDataValue('character_credits');
+        if (!val) return [];
+        if (typeof val === 'string') {
+          try { return JSON.parse(val); } catch (e) { return []; }
+        }
+        return val;
+      }
     },
     accent_color: {
       type: DataTypes.STRING(20),

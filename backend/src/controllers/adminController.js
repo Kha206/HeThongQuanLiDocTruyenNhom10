@@ -1,6 +1,22 @@
-const { Story, Chapter, Genre, StoryGenre, User, sequelize } = require('../models');
+const {
+  Story,
+  Chapter,
+  Genre,
+  StoryGenre,
+  User,
+  Payment,
+  Subscription,
+  SubscriptionPlan,
+  StoryPurchase,
+  ReadingProgress,
+  Comment,
+  StoryRating,
+  sequelize
+} = require('../models');
+const { Op } = require('sequelize');
 const slugify = require('slugify');
 const ComicVineService = require('../services/comicVineService');
+
 
 exports.getAdminOverview = async (req, res) => {
   try {
@@ -200,10 +216,16 @@ exports.addChapter = async (req, res) => {
       });
     }
 
-    const finalCover = cover_image || story.cover_image;
+    // When no cover is provided, do NOT arbitrarily assign story.cover_image
+    const finalCover = (cover_image && typeof cover_image === 'string' && cover_image.trim()) ? cover_image.trim() : null;
     const finalPages = (Array.isArray(pages_data) && pages_data.length > 0)
       ? pages_data
-      : [{ page_number: 1, image_url: finalCover, caption: `${title} - Trang 1` }];
+      : [{ page_number: 1, image_url: finalCover || '/placeholder-cover.svg', caption: `${title} - Trang 1` }];
+
+    const cvService = new ComicVineService();
+    const finalCharacterCredits = cvService.normalizeCharacterCredits(
+      Array.isArray(character_credits) ? character_credits : []
+    );
 
     const newChapter = await Chapter.create({
       story_id,
@@ -213,7 +235,7 @@ exports.addChapter = async (req, res) => {
       is_preview: Boolean(is_preview),
       cover_image: finalCover,
       content: content ? content.trim() : '',
-      character_credits: Array.isArray(character_credits) ? character_credits : [],
+      character_credits: finalCharacterCredits,
       comicvine_issue_id: comicvine_issue_id ? parseInt(comicvine_issue_id, 10) : null,
       accent_color: accent_color || '#ED1D24',
       pages_data: finalPages
@@ -434,168 +456,127 @@ exports.getStoryChapters = async (req, res) => {
 
 
 exports.fetchComicVineIssueByUrl = async (req, res) => {
+  const rawUrl = req.query.url || req.query.query || '';
+  const storyId = req.query.story_id;
+
+  let issueId = null;
   try {
-    const rawUrl = req.query.url || req.query.query;
-    const storyId = req.query.story_id;
-
-    if (!rawUrl || !rawUrl.trim()) {
-      return res.status(400).json({
-        success: false,
-        message: 'Link không hợp lệ, vui lòng dán đúng link issue từ comicvine.gamespot.com'
-      });
-    }
-
-    const story = storyId ? await Story.findByPk(storyId) : null;
-    const cvService = new ComicVineService();
-
-    let issue;
-    try {
-      issue = await cvService.fetchIssueByUrl(rawUrl.trim());
-    } catch (fetchErr) {
-      const status = fetchErr.statusCode || (fetchErr.message && fetchErr.message.includes('Không tìm thấy') ? 404 : 400);
-      return res.status(status).json({
-        success: false,
-        message: fetchErr.message || 'Lỗi khi lấy thông tin issue từ ComicVine'
-      });
-    }
-
-    if (!issue) {
-      return res.status(404).json({
-        success: false,
-        message: 'Không tìm thấy issue này trên ComicVine'
-      });
-    }
-
-    console.log('=== [DEBUG COMICVINE FETCH] Issue ID:', issue.id, 'Title:', issue.title, '===');
-    console.log('=== [DEBUG COMICVINE FETCH] Full "image" field ===', JSON.stringify(issue.image, null, 2));
-    console.log('=== [DEBUG COMICVINE FETCH] cover_image ===', issue.cover_image);
-
-    // Validate if issue belongs to the selected story's volume
-    let volumeMatches = true;
-    let expectedVolumeId = null;
-    let actualVolumeId = issue.volume_id || null;
-
-    if (story) {
-      expectedVolumeId = String(story.comicvine_volume_id || story.comicvine_id || '');
-      if (expectedVolumeId && actualVolumeId) {
-        volumeMatches = (String(actualVolumeId) === String(expectedVolumeId));
-      }
-    }
-
-    return res.status(200).json({
-      success: true,
-      story: story ? {
-        id: story.id,
-        title: story.title,
-        comicvine_id: story.comicvine_id,
-        comicvine_volume_id: story.comicvine_volume_id
-      } : null,
-      issue,
-      issues: [issue], // for backward compatibility with existing result consumers
-      volume_matches: volumeMatches,
-      expected_volume_id: expectedVolumeId,
-      actual_volume_id: actualVolumeId,
-      volume_warning: !volumeMatches ? 'Issue này không thuộc bộ truyện đã chọn, bạn có chắc muốn tiếp tục?' : null
-    });
-  } catch (error) {
-    console.error('Error fetching ComicVine issue by URL:', error);
-    return res.status(500).json({
-      success: false,
-      message: error.message || 'Lỗi xử lý yêu cầu'
-    });
-  }
-};
-
-exports.fetchComicVineIssueByUrl = async (req, res) => {
-  try {
-    const rawUrl = req.query.url || req.query.query || '';
-    const storyId = req.query.story_id;
-
     if (!rawUrl || typeof rawUrl !== 'string' || !rawUrl.trim()) {
       return res.status(400).json({
         success: false,
-        message: 'Link không hợp lệ, vui lòng dán đúng link issue từ comicvine.gamespot.com'
+        message: 'Link không hợp lệ, vui lòng dán đúng link issue từ comicvine.gamespot.com (chứa 4000-ID).'
       });
     }
 
     const cvService = new ComicVineService();
-    let issueData;
-
     try {
-      issueData = await cvService.fetchIssueByUrl(rawUrl);
-    } catch (parseOrFetchErr) {
-      if (parseOrFetchErr.statusCode === 404) {
-        return res.status(404).json({
-          success: false,
-          message: 'Không tìm thấy issue này trên ComicVine'
-        });
-      }
-      return res.status(parseOrFetchErr.statusCode || 400).json({
+      issueId = cvService.parseComicVineUrl(rawUrl);
+    } catch (parseErr) {
+      return res.status(400).json({
         success: false,
-        message: parseOrFetchErr.message || 'Link không hợp lệ, vui lòng dán đúng link issue từ comicvine.gamespot.com'
+        message: parseErr.message || 'Link không hợp lệ, vui lòng dán đúng link issue từ comicvine.gamespot.com (chứa 4000-ID).'
       });
     }
 
-    if (!issueData) {
-      return res.status(404).json({
-        success: false,
-        message: 'Không tìm thấy issue này trên ComicVine'
-      });
-    }
+    // Temporary console.log at backend/src/controllers/adminController.js:462 (can be deleted later)
+    console.log(`=== [COMICVINE TEMPORARY LOG - adminController.js:462] issueId: ${issueId} ===`);
 
-    // Check volume matching against selected story
+    const issueData = await cvService.fetchIssueByUrl(rawUrl.trim());
+
+    // Temporary console.log at backend/src/controllers/adminController.js:467 (can be deleted later)
+    console.log(`=== [COMICVINE TEMPORARY LOG - adminController.js:467] issueId: ${issueId}, status_code: 1, error: null ===`);
+
+    // Check volume matching against selected story (for warning only, never blocks or alters data)
     let volumeMatches = true;
     let storyInfo = null;
+    let expectedVolumeId = null;
+    let actualVolumeId = issueData.volume_id || null;
 
     if (storyId) {
       const story = await Story.findByPk(storyId);
       if (story) {
+        expectedVolumeId = String(story.comicvine_volume_id || story.comicvine_id || '');
         storyInfo = {
           id: story.id,
           title: story.title,
-          comicvine_volume_id: story.comicvine_volume_id || story.comicvine_id
+          comicvine_id: story.comicvine_id,
+          comicvine_volume_id: story.comicvine_volume_id
         };
-        const storyVolId = story.comicvine_volume_id || story.comicvine_id;
-        if (storyVolId && issueData.volume_id) {
-          if (String(storyVolId) !== String(issueData.volume_id)) {
-            volumeMatches = false;
-          }
+        if (expectedVolumeId && actualVolumeId) {
+          const directMatch = String(expectedVolumeId) === String(actualVolumeId);
+          const cleanStoryTitle = story.title.toLowerCase().replace(/^the\s+/, '').trim();
+          const cleanVolumeName = (issueData.volumeName || issueData.volume_name || '').toLowerCase().replace(/^the\s+/, '').trim();
+          const titleMatches = Boolean(cleanVolumeName && (cleanStoryTitle.includes(cleanVolumeName) || cleanVolumeName.includes(cleanStoryTitle)));
+          volumeMatches = directMatch || titleMatches;
         }
       }
     }
 
-    // Format issue cleanly for UI
-    const formattedIssue = {
-      id: issueData.id || issueData.comicvine_issue_id,
-      comicvine_issue_id: issueData.comicvine_issue_id || issueData.id,
-      issue_number: String(issueData.issue_number || '1'),
-      title: issueData.title || issueData.name || `Issue #${issueData.issue_number}`,
-      name: issueData.name || issueData.title,
-      release_date: issueData.release_date || issueData.cover_date || new Date().toISOString().split('T')[0],
-      cover_image: issueData.cover_image,
-      image: issueData.image || {
-        medium_url: issueData.cover_image,
-        original_url: issueData.cover_image,
-        icon_url: issueData.cover_image
-      },
-      volume_id: issueData.volume_id,
-      volume_name: issueData.volume_name,
-      content: issueData.content || issueData.description || '',
-      description: issueData.description || issueData.content || '',
-      character_credits: issueData.character_credits || []
-    };
+    return res.status(200).json({
+      success: true,
+      issueId,
+      issueNumber: issueData.issueNumber,
+      name: issueData.name,
+      coverUrl: issueData.coverUrl,
+      releaseDate: issueData.releaseDate,
+      description: issueData.description,
+      characters: issueData.characters,
+      character_credits: issueData.character_credits,
+      volumeName: issueData.volumeName,
+      volume_matches: volumeMatches,
+      expected_volume_id: expectedVolumeId,
+      actual_volume_id: actualVolumeId,
+      volume_warning: !volumeMatches ? 'Issue này không thuộc bộ truyện đã chọn, bạn có chắc muốn tiếp tục?' : null,
+      story: storyInfo,
+      issue: issueData,
+      issues: [issueData]
+    });
+  } catch (error) {
+    // Temporary console.log at backend/src/controllers/adminController.js:518 (can be deleted later)
+    console.log(`=== [COMICVINE TEMPORARY LOG - adminController.js:518] issueId: ${issueId}, status_code: ${error.comicVineStatusCode || error.statusCode || 500}, error: ${error.message} ===`);
+
+    const statusCode = error.statusCode || 500;
+    return res.status(statusCode).json({
+      success: false,
+      message: error.message || 'Lỗi khi lấy dữ liệu issue từ ComicVine',
+      error: error.message,
+      status_code: error.comicVineStatusCode || null
+    });
+  }
+};
+
+exports.fetchComicVineCharacterByUrl = async (req, res) => {
+  const rawUrl = req.query.url || req.query.query || '';
+  try {
+    if (!rawUrl || typeof rawUrl !== 'string' || !rawUrl.trim()) {
+      return res.status(400).json({
+        success: false,
+        message: 'Link không hợp lệ, vui lòng dán đúng link nhân vật từ comicvine.gamespot.com (chứa 4005-ID).'
+      });
+    }
+
+    const cvService = new ComicVineService();
+    try {
+      cvService.parseComicVineCharacterUrl(rawUrl);
+    } catch (parseErr) {
+      return res.status(400).json({
+        success: false,
+        message: parseErr.message || 'Link không hợp lệ, vui lòng dán đúng link nhân vật từ comicvine.gamespot.com (chứa 4005-ID).'
+      });
+    }
+
+    const characterData = await cvService.fetchCharacterByUrl(rawUrl.trim());
 
     return res.status(200).json({
       success: true,
-      issue: formattedIssue,
-      volume_matches: volumeMatches,
-      story: storyInfo
+      character: characterData
     });
   } catch (error) {
-    console.error('Error fetching ComicVine issue by URL:', error);
-    return res.status(500).json({
+    const statusCode = error.statusCode || 500;
+    return res.status(statusCode).json({
       success: false,
-      message: error.message || 'Lỗi khi lấy dữ liệu issue từ ComicVine'
+      message: error.message || 'Lỗi khi lấy dữ liệu nhân vật từ ComicVine',
+      error: error.message
     });
   }
 };
@@ -743,11 +724,11 @@ exports.searchComicVineIssues = async (req, res) => {
           release_date: new Date().toISOString().split('T')[0],
           description: `Chương #${issueNumber} của bộ truyện "${story.title}". Cuộc phiêu lưu tiếp nối với những diễn biến hấp dẫn và kịch tính.`,
           content: `Chương #${issueNumber} của bộ truyện "${story.title}". Cuộc phiêu lưu tiếp nối với những diễn biến hấp dẫn và kịch tính.`,
-          cover_image: story.cover_image,
+          cover_image: null,
           image: {
-            icon_url: story.cover_image,
-            medium_url: story.cover_image,
-            original_url: story.cover_image
+            icon_url: null,
+            medium_url: null,
+            original_url: null
           },
           character_credits: []
         }];
@@ -869,5 +850,574 @@ exports.uploadChapterCover = (req, res) => {
     return res.status(500).json({ success: false, message: 'Lỗi tải file ảnh lên', error: err.message });
   }
 };
+
+/**
+ * ==============================================================================
+ * SPRINT 5: QUẢN LÝ THÀNH VIÊN (Admin User Management)
+ * ==============================================================================
+ */
+
+/**
+ * Lấy danh sách thành viên kèm tìm kiếm, lọc, phân trang
+ * GET /api/admin/users
+ */
+exports.getUsers = async (req, res) => {
+  try {
+    const { search, role, status, page = 1, limit = 10 } = req.query;
+    const where = {};
+
+    if (search) {
+      where[Op.or] = [
+        { username: { [Op.like]: `%${search}%` } },
+        { email: { [Op.like]: `%${search}%` } },
+        { full_name: { [Op.like]: `%${search}%` } }
+      ];
+    }
+
+    if (role && role !== 'all') {
+      where.role = role;
+    }
+
+    if (status && status !== 'all') {
+      where.status = status;
+    }
+
+    const offset = (parseInt(page, 10) - 1) * parseInt(limit, 10);
+
+    const { count, rows } = await User.findAndCountAll({
+      where,
+      attributes: {
+        exclude: ['password'],
+        include: [
+          [
+            sequelize.literal(`(
+              SELECT COUNT(c.id) FROM comments AS c WHERE c.user_id = User.id
+            )`),
+            'comments_count'
+          ],
+          [
+            sequelize.literal(`(
+              SELECT COUNT(sp.id) FROM story_purchases AS sp WHERE sp.user_id = User.id AND sp.status = 'completed'
+            )`),
+            'purchases_count'
+          ],
+          [
+            sequelize.literal(`(
+              SELECT p.name FROM subscriptions AS s
+              JOIN subscription_plans AS p ON s.plan_id = p.id
+              WHERE s.user_id = User.id AND s.status = 'active' AND s.end_date >= NOW()
+              ORDER BY s.end_date DESC LIMIT 1
+            )`),
+            'active_plan_name'
+          ]
+        ]
+      },
+      order: [['created_at', 'DESC']],
+      limit: parseInt(limit, 10),
+      offset
+    });
+
+    return res.status(200).json({
+      success: true,
+      total: count,
+      page: parseInt(page, 10),
+      totalPages: Math.ceil(count / parseInt(limit, 10)),
+      users: rows
+    });
+  } catch (error) {
+    console.error('Error fetching users:', error);
+    return res.status(500).json({ success: false, message: 'Lỗi tải danh sách người dùng', error: error.message });
+  }
+};
+
+/**
+ * Xem chi tiết thành viên
+ * GET /api/admin/users/:id
+ */
+exports.getUserDetail = async (req, res) => {
+  try {
+    const { id } = req.params;
+
+    const user = await User.findByPk(id, {
+      attributes: { exclude: ['password'] },
+      include: [
+        {
+          model: Subscription,
+          as: 'subscriptions',
+          include: [{ model: SubscriptionPlan, as: 'plan' }]
+        },
+        {
+          model: StoryPurchase,
+          as: 'storyPurchases',
+          include: [{ model: Story, as: 'story', attributes: ['id', 'title', 'cover_image', 'price'] }]
+        }
+      ]
+    });
+
+    if (!user) {
+      return res.status(404).json({ success: false, message: 'Không tìm thấy người dùng.' });
+    }
+
+    const commentsCount = await Comment.count({ where: { user_id: id } });
+    const ratingsCount = await StoryRating.count({ where: { user_id: id } });
+    const paymentsCount = await Payment.count({ where: { user_id: id } });
+
+    return res.status(200).json({
+      success: true,
+      user: {
+        ...user.toJSON(),
+        stats: {
+          comments_count: commentsCount,
+          ratings_count: ratingsCount,
+          payments_count: paymentsCount
+        }
+      }
+    });
+  } catch (error) {
+    console.error('Error fetching user detail:', error);
+    return res.status(500).json({ success: false, message: 'Lỗi tải chi tiết người dùng', error: error.message });
+  }
+};
+
+/**
+ * Cập nhật trạng thái thành viên (Hạn chế, Tạm ngừng, Khôi phục)
+ * PATCH /api/admin/users/:id/status
+ */
+exports.updateUserStatus = async (req, res) => {
+  try {
+    const { id } = req.params;
+    const { status, reason } = req.body;
+
+    if (!['active', 'restricted', 'suspended'].includes(status)) {
+      return res.status(400).json({
+        success: false,
+        message: 'Trạng thái không hợp lệ. Chỉ chấp nhận: active (hoạt động), restricted (hạn chế), suspended (tạm ngừng).'
+      });
+    }
+
+    if (req.user && parseInt(id, 10) === req.user.id) {
+      return res.status(400).json({
+        success: false,
+        message: 'Không thể tự thay đổi trạng thái của chính tài khoản quản trị hiện tại.'
+      });
+    }
+
+    const user = await User.findByPk(id);
+    if (!user) {
+      return res.status(404).json({ success: false, message: 'Không tìm thấy người dùng.' });
+    }
+
+    user.status = status;
+    user.status_reason = reason ? reason.trim() : null;
+    await user.save();
+
+    const userObj = user.toJSON();
+    delete userObj.password;
+
+    return res.status(200).json({
+      success: true,
+      message: `Cập nhật trạng thái người dùng thành công!`,
+      user: userObj
+    });
+  } catch (error) {
+    console.error('Error updating user status:', error);
+    return res.status(500).json({ success: false, message: 'Lỗi cập nhật trạng thái người dùng', error: error.message });
+  }
+};
+
+/**
+ * ==============================================================================
+ * SPRINT 5: THỐNG KÊ & DASHBOARD ADMIN (Statistics & Reporting)
+ * ==============================================================================
+ */
+
+/**
+ * Thống kê tổng hợp các chỉ số KPI
+ * GET /api/admin/stats/overview
+ */
+exports.getStatsOverview = async (req, res) => {
+  try {
+    // 1. Doanh thu tổng từ dữ liệu thật
+    const totalRevenueRes = await Payment.findOne({
+      where: { status: 'completed' },
+      attributes: [[sequelize.fn('SUM', sequelize.col('amount')), 'total']]
+    });
+    const totalRevenue = parseFloat(totalRevenueRes?.getDataValue('total') || 0);
+
+    // 2. Doanh thu tháng hiện tại
+    const now = new Date();
+    const startOfMonth = new Date(now.getFullYear(), now.getMonth(), 1);
+    const monthlyRevenueRes = await Payment.findOne({
+      where: {
+        status: 'completed',
+        created_at: { [Op.gte]: startOfMonth }
+      },
+      attributes: [[sequelize.fn('SUM', sequelize.col('amount')), 'total']]
+    });
+    const monthlyRevenue = parseFloat(monthlyRevenueRes?.getDataValue('total') || 0);
+
+    // 3. Phân bổ doanh thu theo loại sản phẩm
+    const subRevenueRes = await Payment.findOne({
+      where: { status: 'completed', payment_type: 'subscription' },
+      attributes: [[sequelize.fn('SUM', sequelize.col('amount')), 'total']]
+    });
+    const subscriptionRevenue = parseFloat(subRevenueRes?.getDataValue('total') || 0);
+
+    const storyRevenueRes = await Payment.findOne({
+      where: { status: 'completed', payment_type: 'story_purchase' },
+      attributes: [[sequelize.fn('SUM', sequelize.col('amount')), 'total']]
+    });
+    const storyPurchaseRevenue = parseFloat(storyRevenueRes?.getDataValue('total') || 0);
+
+    // 4. Lượt đọc
+    const totalViews = (await Story.sum('view_count')) || 0;
+    const readingRecordsCount = await ReadingProgress.count();
+
+    // 5. Thống kê thành viên
+    const totalUsers = await User.count({ where: { role: 'reader' } });
+    const activeUsers = await User.count({ where: { role: 'reader', status: 'active' } });
+    const restrictedUsers = await User.count({ where: { role: 'reader', status: 'restricted' } });
+    const suspendedUsers = await User.count({ where: { role: 'reader', status: 'suspended' } });
+
+    // 6. Thống kê giao dịch
+    const successfulPayments = await Payment.count({ where: { status: 'completed' } });
+    const failedPayments = await Payment.count({ where: { status: { [Op.in]: ['failed', 'cancelled'] } } });
+    const totalTransactions = successfulPayments + failedPayments;
+    const successRate = totalTransactions > 0 ? Number(((successfulPayments / totalTransactions) * 100).toFixed(1)) : 100;
+
+    // 7. Nội dung
+    const totalStories = await Story.count();
+    const totalChapters = await Chapter.count();
+
+    return res.status(200).json({
+      success: true,
+      data: {
+        revenue: {
+          total: totalRevenue,
+          monthly: monthlyRevenue,
+          subscription: subscriptionRevenue,
+          story_purchase: storyPurchaseRevenue
+        },
+        reading: {
+          total_views: totalViews,
+          total_sessions: readingRecordsCount
+        },
+        users: {
+          total: totalUsers,
+          active: activeUsers,
+          restricted: restrictedUsers,
+          suspended: suspendedUsers
+        },
+        transactions: {
+          successful: successfulPayments,
+          failed: failedPayments,
+          total: totalTransactions,
+          success_rate: successRate
+        },
+        content: {
+          stories: totalStories,
+          chapters: totalChapters
+        }
+      }
+    });
+  } catch (error) {
+    console.error('Error in getStatsOverview:', error);
+    return res.status(500).json({ success: false, message: 'Lỗi tải thống kê tổng quan', error: error.message });
+  }
+};
+
+/**
+ * Thống kê lượt đọc theo truyện và theo chương (kèm lọc thời gian)
+ * GET /api/admin/stats/views
+ */
+exports.getStatsViews = async (req, res) => {
+  try {
+    const { period = '30days' } = req.query;
+    let dateFilter = null;
+    const now = new Date();
+
+    if (period === '7days') {
+      dateFilter = new Date(now.getTime() - 7 * 24 * 60 * 60 * 1000);
+    } else if (period === '30days') {
+      dateFilter = new Date(now.getTime() - 30 * 24 * 60 * 60 * 1000);
+    } else if (period === 'year') {
+      dateFilter = new Date(now.getFullYear(), 0, 1);
+    }
+
+    const rpWhere = {};
+    if (dateFilter) {
+      rpWhere.updated_at = { [Op.gte]: dateFilter };
+    }
+
+    // 1. Thống kê theo truyện
+    const storyReads = await ReadingProgress.findAll({
+      where: rpWhere,
+      attributes: [
+        'story_id',
+        [sequelize.fn('COUNT', sequelize.col('ReadingProgress.id')), 'read_count'],
+        [sequelize.fn('AVG', sequelize.col('ReadingProgress.progress_percent')), 'avg_progress']
+      ],
+      include: [{
+        model: Story,
+        as: 'story',
+        attributes: ['id', 'title', 'cover_image', 'view_count']
+      }],
+      group: ['story_id', 'story.id'],
+      order: [[sequelize.literal('read_count'), 'DESC']],
+      limit: 10
+    });
+
+    // 2. Thống kê theo chương
+    const chapterReads = await ReadingProgress.findAll({
+      where: rpWhere,
+      attributes: [
+        'chapter_id',
+        [sequelize.fn('COUNT', sequelize.col('ReadingProgress.id')), 'read_count']
+      ],
+      include: [
+        {
+          model: Chapter,
+          as: 'chapter',
+          attributes: ['id', 'chapter_number', 'title', 'story_id'],
+          include: [{ model: Story, as: 'story', attributes: ['id', 'title'] }]
+        }
+      ],
+      group: ['chapter_id', 'chapter.id', 'chapter->story.id'],
+      order: [[sequelize.literal('read_count'), 'DESC']],
+      limit: 10
+    });
+
+    return res.status(200).json({
+      success: true,
+      period,
+      data: {
+        by_story: storyReads.map(r => ({
+          story_id: r.story_id,
+          title: r.story?.title || 'N/A',
+          cover_image: r.story?.cover_image,
+          view_count: r.story?.view_count || 0,
+          read_count: parseInt(r.getDataValue('read_count'), 10),
+          avg_progress: Math.round(parseFloat(r.getDataValue('avg_progress') || 0))
+        })),
+        by_chapter: chapterReads.map(r => ({
+          chapter_id: r.chapter_id,
+          title: r.chapter?.title || 'N/A',
+          chapter_number: r.chapter?.chapter_number,
+          story_title: r.chapter?.story?.title || 'N/A',
+          read_count: parseInt(r.getDataValue('read_count'), 10)
+        }))
+      }
+    });
+  } catch (error) {
+    console.error('Error in getStatsViews:', error);
+    return res.status(500).json({ success: false, message: 'Lỗi tải thống kê lượt đọc', error: error.message });
+  }
+};
+
+/**
+ * Thống kê doanh thu theo tháng (Gói đọc & Truyện lẻ)
+ * GET /api/admin/stats/revenue-monthly
+ */
+exports.getStatsRevenueMonthly = async (req, res) => {
+  try {
+    const twelveMonthsAgo = new Date();
+    twelveMonthsAgo.setMonth(twelveMonthsAgo.getMonth() - 11);
+    twelveMonthsAgo.setDate(1);
+
+    const payments = await Payment.findAll({
+      where: {
+        status: 'completed',
+        created_at: { [Op.gte]: twelveMonthsAgo }
+      },
+      attributes: [
+        [sequelize.fn('DATE_FORMAT', sequelize.col('created_at'), '%Y-%m'), 'month_key'],
+        'payment_type',
+        [sequelize.fn('SUM', sequelize.col('amount')), 'total_amount']
+      ],
+      group: ['month_key', 'payment_type'],
+      order: [[sequelize.literal('month_key'), 'ASC']],
+      raw: true
+    });
+
+    // Tạo mảng 12 tháng liên tục
+    const monthlyMap = {};
+    const now = new Date();
+    for (let i = 11; i >= 0; i--) {
+      const d = new Date(now.getFullYear(), now.getMonth() - i, 1);
+      const y = d.getFullYear();
+      const m = String(d.getMonth() + 1).padStart(2, '0');
+      const key = `${y}-${m}`;
+      monthlyMap[key] = {
+        month: `T${d.getMonth() + 1}/${y}`,
+        month_key: key,
+        subscription: 0,
+        story_purchase: 0,
+        total: 0
+      };
+    }
+
+    payments.forEach(p => {
+      const key = p.month_key;
+      if (monthlyMap[key]) {
+        const val = parseFloat(p.total_amount || 0);
+        if (p.payment_type === 'subscription') {
+          monthlyMap[key].subscription += val;
+        } else if (p.payment_type === 'story_purchase') {
+          monthlyMap[key].story_purchase += val;
+        }
+        monthlyMap[key].total += val;
+      }
+    });
+
+    return res.status(200).json({
+      success: true,
+      data: Object.values(monthlyMap)
+    });
+  } catch (error) {
+    console.error('Error in getStatsRevenueMonthly:', error);
+    return res.status(500).json({ success: false, message: 'Lỗi tải thống kê doanh thu theo tháng', error: error.message });
+  }
+};
+
+/**
+ * Xếp hạng nội dung: Top đọc nhiều, Top đánh giá, Top doanh thu
+ * GET /api/admin/stats/top-stories
+ */
+exports.getStatsTopStories = async (req, res) => {
+  try {
+    // 1. Top đọc nhiều nhất
+    const topViews = await Story.findAll({
+      attributes: ['id', 'title', 'cover_image', 'view_count', 'price', 'access_policy'],
+      order: [['view_count', 'DESC']],
+      limit: 5
+    });
+
+    // 2. Top đánh giá cao nhất (tính từ StoryRating thật)
+    const topRatings = await Story.findAll({
+      attributes: [
+        'id', 'title', 'cover_image',
+        [sequelize.literal('(SELECT ROUND(AVG(score), 1) FROM story_ratings WHERE story_ratings.story_id = Story.id)'), 'average_rating'],
+        [sequelize.literal('(SELECT COUNT(id) FROM story_ratings WHERE story_ratings.story_id = Story.id)'), 'rating_count']
+      ],
+      order: [
+        [sequelize.literal('rating_count'), 'DESC'],
+        [sequelize.literal('average_rating'), 'DESC']
+      ],
+      limit: 5
+    });
+
+    // 3. Top doanh thu cao nhất (từ mua lẻ)
+    const topRevenueData = await StoryPurchase.findAll({
+      where: { status: 'completed' },
+      attributes: [
+        'story_id',
+        [sequelize.fn('COUNT', sequelize.col('StoryPurchase.id')), 'purchase_count'],
+        [sequelize.fn('SUM', sequelize.col('price_paid')), 'total_revenue']
+      ],
+      include: [{
+        model: Story,
+        as: 'story',
+        attributes: ['id', 'title', 'cover_image', 'price']
+      }],
+      group: ['story_id', 'story.id'],
+      order: [[sequelize.literal('total_revenue'), 'DESC']],
+      limit: 5
+    });
+
+    return res.status(200).json({
+      success: true,
+      data: {
+        top_views: topViews,
+        top_ratings: topRatings,
+        top_revenue: topRevenueData.map(item => ({
+          story_id: item.story_id,
+          title: item.story?.title || 'N/A',
+          cover_image: item.story?.cover_image,
+          price: item.story?.price,
+          purchase_count: parseInt(item.getDataValue('purchase_count'), 10),
+          total_revenue: parseFloat(item.getDataValue('total_revenue') || 0)
+        }))
+      }
+    });
+  } catch (error) {
+    console.error('Error in getStatsTopStories:', error);
+    return res.status(500).json({ success: false, message: 'Lỗi tải xếp hạng truyện', error: error.message });
+  }
+};
+
+/**
+ * Thống kê thành viên và phân bổ giao dịch
+ * GET /api/admin/stats/users-and-transactions
+ */
+exports.getStatsUsersAndTransactions = async (req, res) => {
+  try {
+    // 1. Phân bổ trạng thái người dùng
+    const statusCounts = await User.findAll({
+      where: { role: 'reader' },
+      attributes: [
+        'status',
+        [sequelize.fn('COUNT', sequelize.col('id')), 'count']
+      ],
+      group: ['status'],
+      raw: true
+    });
+
+    // 2. Phân bổ trạng thái giao dịch
+    const txStatusCounts = await Payment.findAll({
+      attributes: [
+        'status',
+        [sequelize.fn('COUNT', sequelize.col('id')), 'count'],
+        [sequelize.fn('SUM', sequelize.col('amount')), 'total_amount']
+      ],
+      group: ['status'],
+      raw: true
+    });
+
+    // 3. Phân bổ phương thức thanh toán
+    const methodCounts = await Payment.findAll({
+      where: { status: 'completed' },
+      attributes: [
+        'payment_method',
+        [sequelize.fn('COUNT', sequelize.col('id')), 'count'],
+        [sequelize.fn('SUM', sequelize.col('amount')), 'total_amount']
+      ],
+      group: ['payment_method'],
+      raw: true
+    });
+
+    // 4. Thành viên mới theo tháng (6 tháng gần nhất)
+    const sixMonthsAgo = new Date();
+    sixMonthsAgo.setMonth(sixMonthsAgo.getMonth() - 5);
+    sixMonthsAgo.setDate(1);
+
+    const newUsersMonthly = await User.findAll({
+      where: {
+        role: 'reader',
+        created_at: { [Op.gte]: sixMonthsAgo }
+      },
+      attributes: [
+        [sequelize.fn('DATE_FORMAT', sequelize.col('created_at'), '%Y-%m'), 'month_key'],
+        [sequelize.fn('COUNT', sequelize.col('id')), 'count']
+      ],
+      group: ['month_key'],
+      order: [[sequelize.literal('month_key'), 'ASC']],
+      raw: true
+    });
+
+    return res.status(200).json({
+      success: true,
+      data: {
+        user_status: statusCounts,
+        transaction_status: txStatusCounts,
+        payment_methods: methodCounts,
+        user_growth: newUsersMonthly
+      }
+    });
+  } catch (error) {
+    console.error('Error in getStatsUsersAndTransactions:', error);
+    return res.status(500).json({ success: false, message: 'Lỗi tải thống kê thành viên và giao dịch', error: error.message });
+  }
+};
+
 
 

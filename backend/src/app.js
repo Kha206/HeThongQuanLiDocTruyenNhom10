@@ -15,10 +15,18 @@ const commentActionRoutes = require('./routes/commentActionRoutes');
 
 const app = express();
 
-// Middlewares
+// Standard-compliant CORS configuration supporting Chrome, Edge, Firefox, and Safari
 app.use(cors({
-  origin: '*',
-  credentials: true
+  origin: (origin, callback) => {
+    if (!origin) return callback(null, true);
+    if (/^https?:\/\/(localhost|127\.0\.0\.1|\[::1\])(:\d+)?$/.test(origin)) {
+      return callback(null, origin);
+    }
+    return callback(null, origin);
+  },
+  credentials: true,
+  methods: ['GET', 'POST', 'PUT', 'DELETE', 'PATCH', 'OPTIONS'],
+  allowedHeaders: ['Content-Type', 'Authorization', 'X-Requested-With', 'Accept', 'Origin']
 }));
 app.use(express.json());
 app.use(express.urlencoded({ extended: true }));
@@ -49,6 +57,8 @@ app.use('/api/comments', commentActionRoutes);
 app.use('/api/reading-progress', progressRoutes);
 app.use('/api/notifications', notificationRoutes);
 app.use('/api/genres', genreRoutes);
+app.get('/api/comicvine/issue', require('./controllers/adminController').fetchComicVineIssueByUrl);
+app.get('/api/comicvine/character', require('./controllers/adminController').fetchComicVineCharacterByUrl);
 app.use('/api/admin', adminRoutes);
 app.use('/api/plans', planRoutes);
 app.use('/api/payments', paymentRoutes);
