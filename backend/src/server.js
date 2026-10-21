@@ -5,6 +5,7 @@ const app = require('./app');
 const { sequelize } = require('./models');
 
 const PORT = process.env.PORT || 5000;
+const HOST = process.env.HOST || '0.0.0.0';
 
 const server = http.createServer(app);
 
@@ -28,9 +29,10 @@ async function startServer() {
     await sequelize.authenticate();
     console.log('[Database] MySQL connected successfully.');
 
-    server.listen(PORT, () => {
+    server.listen(PORT, HOST, () => {
       console.log(`====================================================`);
       console.log(`   MARVEL COMIC PLATFORM BACKEND API RUNNING        `);
+      console.log(`   Host        : ${HOST} (All Interfaces)           `);
       console.log(`   Port        : ${PORT}                            `);
       console.log(`   URL         : http://localhost:${PORT}           `);
       console.log(`   Environment : ${process.env.NODE_ENV || 'dev'}   `);

@@ -15,14 +15,13 @@ const commentActionRoutes = require('./routes/commentActionRoutes');
 
 const app = express();
 
-// Standard-compliant CORS configuration supporting Chrome, Edge, Firefox, and Safari
+// Standard-compliant CORS configuration supporting Web, Mobile apps (no Origin header), and LAN/Emulators
 app.use(cors({
   origin: (origin, callback) => {
+    // Mobile apps (Flutter/React Native/Native) and CLI tools do not send Origin header
     if (!origin) return callback(null, true);
-    if (/^https?:\/\/(localhost|127\.0\.0\.1|\[::1\])(:\d+)?$/.test(origin)) {
-      return callback(null, origin);
-    }
-    return callback(null, origin);
+    // Allow Web browsers, emulators, and LAN requests
+    return callback(null, true);
   },
   credentials: true,
   methods: ['GET', 'POST', 'PUT', 'DELETE', 'PATCH', 'OPTIONS'],
