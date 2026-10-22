@@ -13,7 +13,7 @@ import { Ionicons } from '@expo/vector-icons';
 import { useAuth } from '../context/AuthContext';
 import ProxiedImage from '../components/ProxiedImage';
 
-export default function AccountScreen() {
+export default function AccountScreen({ navigation }) {
   const { user, mySubscription, isVip, purchasedStories, logout } = useAuth();
 
   const handleLogout = () => {
@@ -101,6 +101,15 @@ export default function AccountScreen() {
                   ? `Thời hạn còn lại: ${mySubscription.days_remaining} ngày`
                   : 'Trạng thái: Đang hoạt động'}
               </Text>
+
+              <TouchableOpacity
+                style={styles.subManageBtn}
+                onPress={() => navigation.navigate('Subscriptions')}
+                activeOpacity={0.85}
+              >
+                <Ionicons name="sparkles" size={14} color="#000000" style={{ marginRight: 6 }} />
+                <Text style={styles.subManageBtnText}>Gia Hạn Gói Hội Viên</Text>
+              </TouchableOpacity>
             </View>
           ) : (
             <View style={styles.vipInactiveBox}>
@@ -108,6 +117,15 @@ export default function AccountScreen() {
               <Text style={styles.standardMemberSub}>
                 Chưa kích hoạt Gói Hội Viên VIP. Bạn có thể đọc các chương đọc thử và truyện miễn phí.
               </Text>
+
+              <TouchableOpacity
+                style={styles.subUpgradeBtn}
+                onPress={() => navigation.navigate('Subscriptions')}
+                activeOpacity={0.85}
+              >
+                <Ionicons name="sparkles" size={14} color="#000000" style={{ marginRight: 6 }} />
+                <Text style={styles.subUpgradeBtnText}>Nâng Cấp Gói Marvel VIP</Text>
+              </TouchableOpacity>
             </View>
           )}
         </View>
@@ -366,5 +384,33 @@ const styles = StyleSheet.create({
     fontSize: 14,
     fontWeight: '700',
     fontFamily: 'Outfit_700Bold',
+  },
+  subManageBtn: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
+    backgroundColor: '#F59E0B',
+    borderRadius: 10,
+    paddingVertical: 10,
+    marginTop: 12,
+  },
+  subManageBtnText: {
+    color: '#000000',
+    fontSize: 12,
+    fontFamily: 'Inter_700Bold',
+  },
+  subUpgradeBtn: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
+    backgroundColor: '#F59E0B',
+    borderRadius: 10,
+    paddingVertical: 10,
+    marginTop: 12,
+  },
+  subUpgradeBtnText: {
+    color: '#000000',
+    fontSize: 12,
+    fontFamily: 'Inter_700Bold',
   },
 });

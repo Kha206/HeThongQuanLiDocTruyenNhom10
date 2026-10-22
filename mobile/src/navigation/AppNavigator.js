@@ -9,6 +9,8 @@ import { useAuth } from '../context/AuthContext';
 import LoginScreen from '../screens/LoginScreen';
 import HomeScreen from '../screens/HomeScreen';
 import StoryDetailScreen from '../screens/StoryDetailScreen';
+import ChapterReaderScreen from '../screens/ChapterReaderScreen';
+import SubscriptionsScreen from '../screens/SubscriptionsScreen';
 import AccountScreen from '../screens/AccountScreen';
 import ComingSoonScreen from '../screens/ComingSoonScreen';
 
@@ -26,6 +28,8 @@ function HomeStackNavigator() {
     >
       <HomeStack.Screen name="Home" component={HomeScreen} />
       <HomeStack.Screen name="StoryDetail" component={StoryDetailScreen} />
+      <HomeStack.Screen name="ChapterReader" component={ChapterReaderScreen} />
+      <HomeStack.Screen name="Subscriptions" component={SubscriptionsScreen} />
       <HomeStack.Screen name="ComingSoon" component={ComingSoonScreen} />
     </HomeStack.Navigator>
   );
@@ -101,7 +105,12 @@ export default function AppNavigator() {
         }}
       >
         {isAuthenticated ? (
-          <Stack.Screen name="Main" component={MainTabNavigator} />
+          <>
+            <Stack.Screen name="Main" component={MainTabNavigator} />
+            <Stack.Screen name="ChapterReader" component={ChapterReaderScreen} />
+            <Stack.Screen name="Subscriptions" component={SubscriptionsScreen} />
+            <Stack.Screen name="ComingSoon" component={ComingSoonScreen} />
+          </>
         ) : (
           <Stack.Screen name="Login" component={LoginScreen} />
         )}

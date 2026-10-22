@@ -52,6 +52,7 @@ async function request(endpoint, options = {}) {
     const errData = await response.json().catch(() => ({}));
     const error = new Error(errData.message || 'Phiên đăng nhập đã hết hạn. Vui lòng đăng nhập lại.');
     error.status = 401;
+    error.code = errData.code || 'UNAUTHORIZED';
     error.data = errData;
     throw error;
   }
@@ -66,7 +67,9 @@ async function request(endpoint, options = {}) {
     const errorMsg = data.message || `Yêu cầu thất bại với mã trạng thái ${response.status}.`;
     const error = new Error(errorMsg);
     error.status = response.status;
+    error.code = data.code;
     error.data = data;
+    error.access_info = data.access_info;
     throw error;
   }
 

@@ -186,6 +186,108 @@ Tất cả các API dưới đây đã được gọi thử nghiệm trực ti�
   - `Access-Control-Allow-Origin`: `*`
   - Body: Binary stream dữ liệu ảnh thực tế.
 
+### 3.8. `GET /api/chapters/:id` (Kiểm chứng quyền đọc và nội dung chương)
+- **Mục đích:** Đọc chi tiết chương truyện Comic Vine, ảnh bìa riêng, tóm tắt và danh sách nhân vật xuất hiện.
+- **Header:** `Authorization: Bearer <token>` (nếu có)
+- **Các trường hợp kiểm chứng thực tế:**
+  1. **Khách vãng lai (không có token) vào chương trả phí:**
+     - **Trạng thái HTTP:** `401 Unauthorized`
+     - **Response:**
+       ```json
+       {
+         "success": false,
+         "code": "UNAUTHORIZED",
+         "message": "Vui lòng đăng nhập để đọc chương trả phí này."
+       }
+       ```
+  2. **Tài khoản độc giả chưa có VIP và chưa mua truyện lẻ:**
+     - **Trạng thái HTTP:** `403 Forbidden`
+     - **Response:**
+       ```json
+       {
+         "success": false,
+         "code": "PAYMENT_REQUIRED",
+         "message": "Chương này yêu cầu Gói Hội Viên VIP hoặc mua riêng trọn bộ truyện để đọc.",
+         "access_info": {
+           "chapter_id": 88,
+           "chapter_number": 3,
+           "title": "Spider-Man Versus Doctor Octopus",
+           "story_id": 1,
+           "story_title": "The Amazing Spider-Man",
+           "story_price": "49000.00",
+           "access_policy": "mixed",
+           "has_active_subscription": false,
+           "has_purchased_story": false
+         }
+       }
+       ```
+  3. **Tài khoản VIP / Chương đọc thử (Preview) thành công:**
+     - **Trạng thái HTTP:** `200 OK`
+     - **Response Fields:**
+       - `success`: boolean (`true`)
+       - `chapter`: object
+         - `id`: number
+         - `story_id`: number
+         - `chapter_number`: number
+         - `title`: string
+         - `release_date`: string
+         - `is_preview`: boolean
+         - `cover_image`: string (ảnh bìa riêng của chương)
+         - `content`: string (nội dung tóm tắt cốt truyện Comic Vine)
+         - `accent_color`: string (ví dụ `"#c61c23"`)
+         - `character_credits`: array of `{ name, icon_url }` (danh sách nhân vật xuất hiện)
+         - `story`: object (`id`, `title`, `cover_image`, `access_policy`, `price`)
+       - `prev_chapter`: object hoặc null (`id`, `chapter_number`, `title`, `cover_image`)
+       - `next_chapter`: object hoặc null (`id`, `chapter_number`, `title`, `cover_image`)
+       - `read_access`: object (`allowed: true`, `via: "subscription" | "purchase" | "free"`)
+
+### 3.9. `GET /api/plans`
+- **Mục đích:** Lấy danh sách các gói hội viên VIP đang hoạt động.
+- **Trạng thái HTTP:** `200 OK`
+- **Response Fields:**
+  - `success`: boolean (`true`)
+  - `plans`: array of:
+    - `id`: number
+    - `name`: string (ví dụ: `"Gói Độc Giả Marvel (1 Tháng)"`)
+    - `price`: string (ví dụ: `"49000.00"`)
+    - `duration_days`: number (ví dụ: `30`, `90`, `365`)
+    - `badge`: string (ví dụ: `"Tiêu Chuẩn"`, `"Phổ Biến Nhất"`, `"Tiết Kiệm 35%"`)
+    - `description`: string
+
+### 3.10. `POST /api/payments/checkout`
+- **Mục đích:** Khởi tạo đơn thanh toán gói hội viên.
+- **Header:** `Authorization: Bearer <token>`
+- **Body:** `{ "payment_type": "subscription", "item_id": 1, "payment_method": "sandbox" }`
+- **Trạng thái HTTP:** `201 Created`
+- **Response Fields:**
+  - `success`: boolean (`true`)
+  - `message`: string (`"Tạo phiên thanh toán thành công."`)
+  - `data`: object
+    - `transactionCode`: string (ví dụ: `"SANDBOX_1792651018353_7975"`)
+    - `amount`: string (ví dụ: `"49000.00"`)
+    - `itemTitle`: string (ví dụ: `"Gói Độc Giả Marvel (1 Tháng)"`)
+    - `paymentType`: string (`"subscription"`)
+    - `paymentMethod`: string (`"sandbox"`)
+
+### 3.11. `POST /api/payments/process-sandbox`
+- **Mục đích:** Xử lý kết quả giao dịch thanh toán mô phỏng Sandbox.
+- **Header:** `Authorization: Bearer <token>`
+- **Body gửi lên:** `{ "transaction_code": "...", "simulate_failure": true | false }`
+- **Nhánh thất bại / người dùng hủy (`simulate_failure: true`):**
+  - **Trạng thái HTTP:** `400 Bad Request`
+  - **Response:**
+    ```json
+    {
+      "success": false,
+      "message": "Giao dịch thanh toán không thành công. Quyền đọc chưa được kích hoạt.",
+      "payment": { "status": "failed", ... }
+    }
+    ```
+  - **Kiểm chứng:** Quyền VIP không được cấp, `my-subscription` giữ nguyên `null`.
+- **Nhánh thành công (`simulate_failure: false`):**
+  - **Trạng thái HTTP:** `200 OK`
+  - **Kiểm chứng:** Kích hoạt gói VIP qua Sequelize transaction, cộng dồn ngày sử dụng.
+
 ---
 
 ## 4. ĐIỂM KHÁC BIỆT THỰC TẾ SO VỚI TÀI LIỆU CŨ VÀ CÁCH XỬ LÝ TRONG APP
@@ -197,6 +299,8 @@ Tất cả các API dưới đây đã được gọi thử nghiệm trực ti�
    - Trong phản hồi thực tế, mỗi bản ghi trả về `purchase_id` và `story_id` (chứ không phải `id`). App sử dụng `Number(item.story_id)` để đối chiếu mở khóa chương truyện chính xác 100%.
 3. **Cấu trúc gói hội viên (`my-subscription`):**
    - Phản hồi thực tế chứa trực tiếp `plan_name`, `badge`, `days_remaining`, `is_active` ngay trong object `subscription`, app lấy trực tiếp các field này để hiển thị hạn dùng gói VIP.
+4. **Mã phản hồi kiểm tra quyền đọc chương (`checkReadAccess`):**
+   - Khi chưa có quyền đọc: backend trả về HTTP 403 kèm `code: 'PAYMENT_REQUIRED'` và object `access_info` (chứa `story_title`, `chapter_number`, `story_price`). App xử lý mở `AccessBlockedSheet` thân thiện bằng tiếng Việt, tuyệt đối không lộ chuỗi mã kỹ thuật lên UI.
 
 ---
 
@@ -210,3 +314,4 @@ Chương truyện được xác định là **MỞ KHÓA** khi thỏa mãn một
    - HOẶC có gói VIP còn hạn: `isVip === true` hoặc `mySubscription.is_active === true`
    - HOẶC đã mua riêng trọn bộ truyện: `purchasedStories.some(p => Number(p.story_id) === Number(story.id))`
 4. Tất cả các trường hợp còn lại: biểu tượng **KHÓA (VIP)** màu hổ phách.
+

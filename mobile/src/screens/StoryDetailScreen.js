@@ -232,11 +232,12 @@ export default function StoryDetailScreen({ route, navigation }) {
                   story={story}
                   isUnlocked={isUnlocked}
                   onPress={(selectedChapter) => {
-                    navigation.navigate('ComingSoon', {
+                    navigation.navigate('ChapterReader', {
+                      chapterId: selectedChapter.id,
+                      storyId: story.id,
                       storyTitle: story.title,
                       chapterNumber: selectedChapter.chapter_number,
                       chapterTitle: selectedChapter.title,
-                      isUnlocked
                     });
                   }}
                 />
