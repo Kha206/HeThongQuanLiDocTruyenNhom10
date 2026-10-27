@@ -11,7 +11,7 @@ import { Ionicons } from '@expo/vector-icons';
 
 /**
  * AccessBlockedSheet - Bottom Sheet hiển thị khi gặp mã lỗi 403 (PAYMENT_REQUIRED)
- * Nêu rõ lý do, đặc quyền VIP, giá trọn bộ (nếu có), nút điều hướng sang Gói Hội Viên.
+ * Nêu rõ lý do, đặc quyền VIP, giá trọn bộ (nếu có), nút đăng ký VIP và nút Mua riêng trọn bộ.
  * Tuyệt đối không để lộ mã lỗi kỹ thuật như PAYMENT_REQUIRED hay US-xx lên giao diện.
  */
 export default function AccessBlockedSheet({
@@ -19,6 +19,7 @@ export default function AccessBlockedSheet({
   accessInfo,
   message,
   onNavigateToSubscriptions,
+  onBuyStory,
   onClose,
   onGoBack,
 }) {
@@ -80,7 +81,7 @@ export default function AccessBlockedSheet({
               {formattedPrice && (
                 <View style={[styles.infoRow, { borderTopWidth: 1, borderTopColor: '#2A2A38', paddingTop: 8, marginTop: 4 }]}>
                   <Text style={styles.infoLabel}>Giá mua trọn bộ:</Text>
-                  <Text style={[styles.infoValue, { color: '#ED1D24', fontWeight: '800' }]}>
+                  <Text style={[styles.infoValue, { color: '#34D399', fontWeight: '800' }]}>
                     {formattedPrice}
                   </Text>
                 </View>
@@ -100,14 +101,18 @@ export default function AccessBlockedSheet({
               <Text style={styles.primaryBtnText}>Đăng Ký Gói Hội Viên VIP</Text>
             </TouchableOpacity>
 
-            {/* 2. Nút Mua riêng truyện lẻ (Chưa làm ở bước này -> Sắp có) */}
-            {formattedPrice && (
-              <View style={styles.secondaryBtnDisabled}>
-                <Ionicons name="cart-outline" size={17} color="#6B7280" style={{ marginRight: 6 }} />
-                <Text style={styles.secondaryBtnDisabledText}>
-                  Mua Riêng Trọn Bộ ({formattedPrice}) — Sắp có
+            {/* 2. Nút Mua riêng truyện lẻ (Kích hoạt với dialog Sandbox) */}
+            {formattedPrice && onBuyStory && (
+              <TouchableOpacity
+                style={styles.buyStoryBtn}
+                onPress={onBuyStory}
+                activeOpacity={0.85}
+              >
+                <Ionicons name="cart" size={18} color="#FFFFFF" style={{ marginRight: 8 }} />
+                <Text style={styles.buyStoryBtnText}>
+                  Mua Riêng Trọn Bộ ({formattedPrice})
                 </Text>
-              </View>
+              </TouchableOpacity>
             )}
 
             {/* 3. Nút Quay lại trang truyện */}
@@ -247,21 +252,24 @@ const styles = StyleSheet.create({
     fontSize: 14,
     fontFamily: 'Inter_700Bold',
   },
-  secondaryBtnDisabled: {
+  buyStoryBtn: {
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'center',
-    backgroundColor: '#16161F',
-    borderColor: '#2A2A38',
-    borderWidth: 1,
+    backgroundColor: '#059669',
     borderRadius: 14,
-    paddingVertical: 12,
+    paddingVertical: 13,
     paddingHorizontal: 16,
+    shadowColor: '#059669',
+    shadowOffset: { width: 0, height: 4 },
+    shadowOpacity: 0.25,
+    shadowRadius: 6,
+    elevation: 3,
   },
-  secondaryBtnDisabledText: {
-    color: '#6B7280',
-    fontSize: 12,
-    fontFamily: 'Inter_600SemiBold',
+  buyStoryBtnText: {
+    color: '#FFFFFF',
+    fontSize: 13,
+    fontFamily: 'Inter_700Bold',
   },
   backBtn: {
     flexDirection: 'row',

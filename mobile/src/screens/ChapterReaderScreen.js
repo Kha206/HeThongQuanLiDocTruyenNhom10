@@ -4,37 +4,43 @@ import {
   Text,
   ScrollView,
   TouchableOpacity,
+  TextInput,
+  Modal,
   ActivityIndicator,
   StyleSheet,
   SafeAreaView,
-  StatusBar
+  StatusBar,
+  Alert,
+  Pressable
 } from 'react-native';
+import { useFocusEffect } from '@react-navigation/native';
 import { Ionicons } from '@expo/vector-icons';
 import api from '../services/api';
 import { useAuth } from '../context/AuthContext';
 import ProxiedImage from '../components/ProxiedImage';
+import UserAvatar from '../components/UserAvatar';
 import AccessBlockedSheet from '../components/AccessBlockedSheet';
+import SandboxPaymentModal from '../components/SandboxPaymentModal';
 import { parseContentToParagraphs } from '../utils/htmlUtils';
 
 /**
- * ChapterReaderScreen - Màn hình Đọc Chương Truyện Marvel
+ * ChapterReaderScreen - Màn hình Đọc Chương Truyện Marvel & Thảo Luận Cộng Đồng
  * 
- * ĐẶC ĐIỂM KỸ THUẬT:
- * 1. Gọi GET /api/chapters/:id kèm Bearer token (nếu có).
- * 2. Hiển thị ảnh bìa riêng của từng chương (qua ProxiedImage / /api/image-proxy).
- * 3. Nội dung tóm tắt / cốt truyện chương hiển thị bằng font Merriweather, line-height thoáng đãng.
- * 4. Xử lý HTML gọn nhẹ bằng hàm parseContentToParagraphs thuần regex (không bloat dependency).
- * 5. Danh sách nhân vật xuất hiện (character_credits): ảnh riêng từng nhân vật, lọc trùng lặp,
- *    fallback bằng icon siêu anh hùng vector (tuyệt đối không dùng avatar chữ cái đầu).
- * 6. Điều hướng chương trước (prev_chapter) và chương sau (next_chapter).
- * 7. Bắt mã 403 PAYMENT_REQUIRED -> hiển thị AccessBlockedSheet.
- * 8. Bắt mã 401 UNAUTHORIZED -> hiển thị thông báo hướng dẫn đăng nhập.
+ * TÍNH NĂNG ĐƯỢC BỔ SUNG:
+ * 1. Mua truyện lẻ tại AccessBlockedSheet qua SandboxPaymentModal.
+ * 2. Thảo luận theo chương:
+ *    - Danh sách bình luận (Avatar người dùng / chữ cái đầu, tên, role, ngày giờ, số like, nội dung).
+ *    - Ô đăng bình luận: xác thực đăng nhập, kiểm tra rỗng, giới hạn tối đa 1000 ký tự.
+ *    - Nút Thích bình luận: gọi POST /api/comments/:id/like.
+ *    - Nút Báo cáo bình luận vi phạm: gọi POST /api/comments/:id/report kèm lý do.
+ *    - Phân trang 10 bình luận đầu tiên phía client kèm nút "Xem thêm bình luận".
+ *    - Tải lại bình luận mỗi lần vào màn hình (useFocusEffect), không cache cứng.
  */
 export default function ChapterReaderScreen({ route, navigation }) {
   const { chapterId: initialChapterId, storyId, storyTitle } = route.params || {};
   const [currentChapterId, setCurrentChapterId] = useState(initialChapterId);
 
-  const { isVip, isAuthenticated } = useAuth();
+  const { user, isVip, isAuthenticated } = useAuth();
 
   const [chapter, setChapter] = useState(null);
   const [prevChapter, setPrevChapter] = useState(null);
@@ -43,6 +49,22 @@ export default function ChapterReaderScreen({ route, navigation }) {
   const [error, setError] = useState(null);
   const [accessBlocked, setAccessBlocked] = useState(null);
   const [isUnauthorized, setIsUnauthorized] = useState(false);
+
+  // Modal mua lẻ bản quyền truyện từ AccessBlockedSheet
+  const [isStoryPurchaseModalOpen, setIsStoryPurchaseModalOpen] = useState(false);
+
+  // States Thảo luận theo chương (Feature 3)
+  const [comments, setComments] = useState([]);
+  const [commentsLoading, setCommentsLoading] = useState(false);
+  const [newCommentText, setNewCommentText] = useState('');
+  const [submittingComment, setSubmittingComment] = useState(false);
+  const [visibleCommentsCount, setVisibleCommentsCount] = useState(10);
+
+  // Modal báo cáo bình luận
+  const [reportingCommentId, setReportingCommentId] = useState(null);
+  const [selectedReportReason, setSelectedReportReason] = useState('Nội dung phản cảm, thô tục');
+  const [customReportReason, setCustomReportReason] = useState('');
+  const [isSubmittingReport, setIsSubmittingReport] = useState(false);
 
   // Tải dữ liệu chương truyện từ backend
   const fetchChapterDetail = useCallback(async (targetId) => {
@@ -79,10 +101,138 @@ export default function ChapterReaderScreen({ route, navigation }) {
     }
   }, []);
 
+  // Tải danh sách bình luận của chương (KHÔNG cache cứng, backend đã lọc status: 'approved')
+  const fetchComments = useCallback(async (targetId) => {
+    if (!targetId) return;
+    setCommentsLoading(true);
+    try {
+      const res = await api.get(`/api/chapters/${targetId}/comments`);
+      if (res.success && Array.isArray(res.comments)) {
+        setComments(res.comments);
+        setVisibleCommentsCount(10);
+      }
+    } catch (err) {
+      console.warn('Lỗi khi tải bình luận chương:', err.message);
+    } finally {
+      setCommentsLoading(false);
+    }
+  }, []);
+
   // Tải chương khi ID thay đổi hoặc khi trạng thái VIP thay đổi
   useEffect(() => {
     fetchChapterDetail(currentChapterId);
-  }, [currentChapterId, fetchChapterDetail, isVip]);
+    fetchComments(currentChapterId);
+  }, [currentChapterId, fetchChapterDetail, fetchComments, isVip]);
+
+  // Làm mới bình luận mỗi lần màn hình được focus
+  useFocusEffect(
+    useCallback(() => {
+      if (currentChapterId) {
+        fetchComments(currentChapterId);
+      }
+    }, [currentChapterId, fetchComments])
+  );
+
+  // Xử lý gửi bình luận mới
+  const handleAddComment = async () => {
+    if (!isAuthenticated) {
+      navigation.navigate('Login');
+      return;
+    }
+
+    const trimmed = newCommentText.trim();
+    if (!trimmed) {
+      Alert.alert('Thông báo', 'Vui lòng nhập nội dung bình luận.');
+      return;
+    }
+
+    if (trimmed.length > 1000) {
+      Alert.alert('Thông báo', 'Bình luận không được vượt quá 1000 ký tự.');
+      return;
+    }
+
+    setSubmittingComment(true);
+    try {
+      const res = await api.post(`/api/chapters/${currentChapterId}/comments`, {
+        content: trimmed,
+      });
+
+      if (res.success && res.comment) {
+        setComments((prev) => [res.comment, ...prev]);
+        setNewCommentText('');
+        Alert.alert('Thành công', 'Bình luận của bạn đã được đăng thành công.');
+      } else {
+        Alert.alert('Lỗi', res.message || 'Không thể gửi bình luận.');
+      }
+    } catch (err) {
+      Alert.alert('Lỗi', err.message || 'Không thể gửi bình luận.');
+    } finally {
+      setSubmittingComment(false);
+    }
+  };
+
+  // Xử lý thích bình luận (Like)
+  const handleLikeComment = async (commentId) => {
+    // Tăng số lượt thích lạc quan trên UI
+    setComments((prev) =>
+      prev.map((c) =>
+        c.id === commentId
+          ? { ...c, likes_count: (c.likes_count || 0) + 1, is_liked: true }
+          : c
+      )
+    );
+
+    try {
+      const res = await api.post(`/api/comments/${commentId}/like`);
+      if (res.success && res.likes_count !== undefined) {
+        setComments((prev) =>
+          prev.map((c) =>
+            c.id === commentId ? { ...c, likes_count: res.likes_count } : c
+          )
+        );
+      }
+    } catch (err) {
+      console.warn('Lỗi khi thích bình luận:', err.message);
+    }
+  };
+
+  // Mở modal báo cáo bình luận
+  const handleOpenReport = (commentId) => {
+    if (!isAuthenticated) {
+      navigation.navigate('Login');
+      return;
+    }
+    setReportingCommentId(commentId);
+    setSelectedReportReason('Nội dung phản cảm, thô tục');
+    setCustomReportReason('');
+  };
+
+  // Gửi báo cáo bình luận vi phạm
+  const handleSubmitReport = async () => {
+    if (!reportingCommentId || isSubmittingReport) return;
+
+    const finalReason = selectedReportReason === 'Lý do khác'
+      ? (customReportReason.trim() || 'Nội dung vi phạm tiêu chuẩn cộng đồng')
+      : selectedReportReason;
+
+    setIsSubmittingReport(true);
+    try {
+      const res = await api.post(`/api/comments/${reportingCommentId}/report`, {
+        reason: finalReason,
+      });
+
+      if (res.success) {
+        Alert.alert('Thông báo', 'Đã gửi báo cáo vi phạm tới ban quản trị để xem xét.');
+        setReportingCommentId(null);
+      } else {
+        Alert.alert('Lỗi', res.message || 'Lỗi khi gửi báo cáo vi phạm.');
+      }
+    } catch (err) {
+      Alert.alert('Lỗi', err.message || 'Lỗi khi gửi báo cáo vi phạm.');
+    } finally {
+      setIsSubmittingReport(false);
+    }
+  };
 
   // Màu nhấn của chương (hoặc fallback Marvel Red #ED1D24)
   const accentColor = useMemo(() => {
@@ -165,6 +315,19 @@ export default function ChapterReaderScreen({ route, navigation }) {
     }
   };
 
+  // Danh sách bình luận hiển thị phân trang client
+  const visibleComments = useMemo(() => {
+    return comments.slice(0, visibleCommentsCount);
+  }, [comments, visibleCommentsCount]);
+
+  const reportReasonsList = [
+    'Nội dung phản cảm, thô tục',
+    'Spam hoặc quảng cáo trái phép',
+    'Xúc phạm hoặc quấy rối độc giả khác',
+    'Tiết lộ trước nội dung (Spoiler) chưa báo trước',
+    'Lý do khác'
+  ];
+
   return (
     <SafeAreaView style={styles.safeArea}>
       <StatusBar barStyle="light-content" backgroundColor="#0F0F14" />
@@ -181,130 +344,111 @@ export default function ChapterReaderScreen({ route, navigation }) {
 
         <View style={styles.navTitleGroup}>
           <Text style={styles.navStoryTitle} numberOfLines={1}>
-            {chapter?.story?.title || storyTitle || 'Truyện Tranh Marvel'}
+            {storyTitle || chapter?.story?.title || 'Marvel Comics'}
           </Text>
-          <Text style={[styles.navChapterSubtitle, { color: accentColor }]} numberOfLines={1}>
-            {chapter ? `Chương ${chapter.chapter_number}: ${chapter.title}` : 'Đọc chương'}
+          <Text style={styles.navChapterTitleTop} numberOfLines={1}>
+            {chapter ? `Issue #${chapter.chapter_number} - ${chapter.title}` : 'Đang tải chương...'}
           </Text>
         </View>
 
-        <View style={{ width: 36 }} />
+        <TouchableOpacity
+          onPress={() => navigation.navigate('Subscriptions')}
+          style={styles.navVipButton}
+          hitSlop={{ top: 10, bottom: 10, left: 10, right: 10 }}
+        >
+          <Ionicons name="sparkles" size={16} color="#FBBF24" />
+        </TouchableOpacity>
       </View>
 
-      {/* Trạng thái Đang tải dữ liệu */}
+      {/* Vùng nội dung chính */}
       {loading ? (
-        <View style={styles.centerBox}>
+        <View style={styles.centeredWrapper}>
           <ActivityIndicator size="large" color={accentColor} />
-          <Text style={styles.loadingText}>Đang khởi tạo không gian đọc...</Text>
-          <Text style={styles.loadingSub}>Dữ liệu chính thức từ Comic Vine</Text>
+          <Text style={styles.loadingText}>Đang nạp dữ liệu chương truyện...</Text>
         </View>
       ) : isUnauthorized ? (
-        /* Trạng thái 401: Yêu cầu đăng nhập */
-        <View style={styles.centerBox}>
-          <View style={styles.errorIconCircle}>
-            <Ionicons name="log-in-outline" size={36} color="#ED1D24" />
-          </View>
-          <Text style={styles.errorHeading}>Cần Đăng Nhập</Text>
-          <Text style={styles.errorSubHeading}>
-            Vui lòng đăng nhập tài khoản để đọc chương truyện trả phí này.
-          </Text>
+        <View style={styles.centeredWrapper}>
+          <Ionicons name="lock-closed" size={48} color="#FBBF24" />
+          <Text style={styles.errorTitle}>Yêu Cầu Đăng Nhập</Text>
+          <Text style={styles.errorSub}>Vui lòng đăng nhập để đọc chương truyện có bản quyền này.</Text>
           <TouchableOpacity
             style={styles.actionBtnPrimary}
             onPress={() => navigation.navigate('Login')}
-            activeOpacity={0.85}
           >
-            <Ionicons name="log-in" size={18} color="#FFFFFF" style={{ marginRight: 6 }} />
             <Text style={styles.actionBtnPrimaryText}>Đăng Nhập Ngay</Text>
           </TouchableOpacity>
         </View>
       ) : error && !accessBlocked ? (
-        /* Trạng thái lỗi khác */
-        <View style={styles.centerBox}>
-          <View style={styles.errorIconCircle}>
-            <Ionicons name="alert-circle-outline" size={36} color="#F87171" />
-          </View>
-          <Text style={styles.errorHeading}>Không Thể Tải Chương</Text>
-          <Text style={styles.errorSubHeading}>{error}</Text>
+        <View style={styles.centeredWrapper}>
+          <Ionicons name="alert-circle-outline" size={48} color="#F87171" />
+          <Text style={styles.errorTitle}>Lỗi Tải Nội Dung</Text>
+          <Text style={styles.errorSub}>{error}</Text>
           <TouchableOpacity
             style={styles.actionBtnPrimary}
             onPress={() => fetchChapterDetail(currentChapterId)}
-            activeOpacity={0.85}
           >
-            <Ionicons name="refresh" size={18} color="#FFFFFF" style={{ marginRight: 6 }} />
             <Text style={styles.actionBtnPrimaryText}>Thử Lại</Text>
           </TouchableOpacity>
         </View>
       ) : chapter ? (
-        /* Trạng thái hiển thị nội dung chương */
         <ScrollView contentContainerStyle={styles.scrollContent}>
-          {/* Hero Cover Card của riêng chương truyện */}
-          <View style={styles.heroCoverCard}>
-            <View style={styles.coverImageContainer}>
+          {/* Header Bìa Chương */}
+          <View style={styles.chapterHeaderCard}>
+            <View style={styles.coverFrame}>
               <ProxiedImage
                 url={chapter.cover_image}
-                style={styles.chapterCoverImage}
+                style={styles.coverImage}
                 fallbackIcon="book-outline"
                 fallbackIconSize={48}
               />
+              <View style={styles.coverOverlay} />
+              <View style={styles.coverBadgeContainer}>
+                <View style={[styles.issueBadge, { backgroundColor: accentColor }]}>
+                  <Text style={styles.issueBadgeText}>Issue #{chapter.chapter_number}</Text>
+                </View>
+              </View>
             </View>
 
-            {/* Badges metadata */}
-            <View style={styles.metaBadgeRow}>
-              <View style={[styles.issueBadge, { backgroundColor: accentColor }]}>
-                <Text style={styles.issueBadgeText}>Issue #{chapter.chapter_number}</Text>
+            <View style={styles.headerInfo}>
+              <View style={styles.metaRow}>
+                <View style={styles.metaItem}>
+                  <Ionicons name="calendar-outline" size={12} color="#9CA3AF" />
+                  <Text style={styles.metaText}>{chapter.release_date || 'N/A'}</Text>
+                </View>
+                {chapter.is_preview && (
+                  <View style={styles.previewPill}>
+                    <Text style={styles.previewPillText}>ĐỌC THỬ MIỄN PHÍ</Text>
+                  </View>
+                )}
               </View>
 
-              {chapter.release_date && (
-                <View style={styles.dateBadge}>
-                  <Ionicons name="calendar-outline" size={12} color="#9CA3AF" style={{ marginRight: 4 }} />
-                  <Text style={styles.dateBadgeText}>{chapter.release_date}</Text>
-                </View>
-              )}
-
-              {chapter.is_preview ? (
-                <View style={styles.previewBadge}>
-                  <Text style={styles.previewBadgeText}>ĐỌC THỬ MIỄN PHÍ</Text>
-                </View>
-              ) : (
-                <View style={styles.vipBadge}>
-                  <Ionicons name="sparkles" size={11} color="#FBBF24" style={{ marginRight: 3 }} />
-                  <Text style={styles.vipBadgeText}>BẢN QUYỀN VIP</Text>
-                </View>
-              )}
+              <Text style={styles.chapterTitle}>{chapter.title}</Text>
             </View>
-
-            {/* Tiêu đề chương */}
-            <Text style={styles.chapterTitle}>{chapter.title}</Text>
           </View>
 
-          {/* Pull Quote (Trích yếu nghệ thuật) */}
-          {pullQuote && (
+          {/* Trích Yếu Cốt Truyện (Pull Quote) */}
+          {pullQuote ? (
             <View style={[styles.pullQuoteBox, { borderLeftColor: accentColor }]}>
-              <Text style={styles.quoteMark}>“</Text>
+              <Text style={[styles.quoteSymbol, { color: accentColor }]}>“</Text>
               <Text style={styles.pullQuoteText}>"{pullQuote}"</Text>
-              <Text style={styles.pullQuoteAuthor}>
-                — Trích yếu hồi ký Issue #{chapter.chapter_number}
-              </Text>
             </View>
-          )}
+          ) : null}
 
-          {/* Nội dung chương chính: Font Merriweather */}
-          <View style={styles.articleSection}>
-            {paragraphs.map((p, index) => (
-              <Text key={index} style={styles.merriweatherParagraph}>
+          {/* Nội dung bài viết / cốt truyện - Font Merriweather */}
+          <View style={styles.contentSection}>
+            {paragraphs.map((p, idx) => (
+              <Text key={`para_${idx}`} style={styles.paragraphText}>
                 {p}
               </Text>
             ))}
           </View>
 
-          {/* Khu vực Nhân Vật Xuất Hiện (character_credits) */}
+          {/* Danh Sách Nhân Vật Xuất Hiện */}
           {uniqueCharacters.length > 0 && (
             <View style={styles.charactersSection}>
               <View style={styles.charactersSectionHeader}>
                 <Ionicons name="people" size={18} color={accentColor} style={{ marginRight: 8 }} />
-                <Text style={styles.charactersSectionTitle}>
-                  Nhân Vật Xuất Hiện ({uniqueCharacters.length})
-                </Text>
+                <Text style={styles.charactersHeading}>Nhân Vật Xuất Hiện</Text>
               </View>
 
               <ScrollView
@@ -393,6 +537,197 @@ export default function ChapterReaderScreen({ route, navigation }) {
               )}
             </View>
           </View>
+
+          {/* ======================================================== */}
+          {/* KHU VỰC THẢO LUẬN & BÌNH LUẬN THEO CHƯƠNG (Feature 3)     */}
+          {/* ======================================================== */}
+          <View style={styles.commentsSection}>
+            <View style={styles.commentsSectionHeader}>
+              <View style={[styles.commentIconCircle, { backgroundColor: accentColor }]}>
+                <Ionicons name="chatbubbles" size={18} color="#000000" />
+              </View>
+              <View style={{ flex: 1 }}>
+                <View style={{ flexDirection: 'row', alignItems: 'center', gap: 8 }}>
+                  <Text style={styles.commentsHeading}>Thảo Luận Chương</Text>
+                  <View style={styles.commentsCountBadge}>
+                    <Text style={styles.commentsCountBadgeText}>{comments.length}</Text>
+                  </View>
+                </View>
+                <Text style={styles.commentsSubHeading}>
+                  Góc giao lưu, chia sẻ cảm nghĩ cùng độc giả Marvel
+                </Text>
+              </View>
+            </View>
+
+            {/* Ô Đăng Bình Luận */}
+            <View style={styles.commentInputBox}>
+              {isAuthenticated ? (
+                <View>
+                  <View style={styles.currentUserInfoRow}>
+                    <UserAvatar user={user} size={32} />
+                    <Text style={styles.currentUserLabel}>
+                      Bình luận với tư cách: <Text style={styles.currentUserName}>{user?.full_name || user?.username}</Text>
+                    </Text>
+                  </View>
+
+                  <TextInput
+                    style={styles.commentTextInput}
+                    placeholder="Chia sẻ cảm nghĩ hoặc giả thuyết của bạn về chương truyện này..."
+                    placeholderTextColor="#6B7280"
+                    multiline
+                    numberOfLines={3}
+                    maxLength={1000}
+                    value={newCommentText}
+                    onChangeText={setNewCommentText}
+                  />
+
+                  <View style={styles.commentInputFooter}>
+                    <Text style={styles.charCountText}>
+                      {newCommentText.length}/1000 ký tự
+                    </Text>
+                    <TouchableOpacity
+                      style={[
+                        styles.btnSubmitComment,
+                        (!newCommentText.trim() || submittingComment) && styles.btnSubmitCommentDisabled
+                      ]}
+                      onPress={handleAddComment}
+                      disabled={!newCommentText.trim() || submittingComment}
+                      activeOpacity={0.85}
+                    >
+                      {submittingComment ? (
+                        <ActivityIndicator size="small" color="#FFFFFF" />
+                      ) : (
+                        <>
+                          <Ionicons name="send" size={14} color="#FFFFFF" style={{ marginRight: 6 }} />
+                          <Text style={styles.btnSubmitCommentText}>Gửi Bình Luận</Text>
+                        </>
+                      )}
+                    </TouchableOpacity>
+                  </View>
+                </View>
+              ) : (
+                <View style={styles.guestNoticeBox}>
+                  <Ionicons name="lock-closed-outline" size={28} color="#FBBF24" style={{ marginBottom: 8 }} />
+                  <Text style={styles.guestNoticeText}>
+                    Đăng nhập để tham gia thảo luận cùng cộng đồng độc giả Marvel
+                  </Text>
+                  <TouchableOpacity
+                    style={styles.btnGuestLogin}
+                    onPress={() => navigation.navigate('Login')}
+                    activeOpacity={0.85}
+                  >
+                    <Ionicons name="log-in-outline" size={16} color="#FFFFFF" style={{ marginRight: 6 }} />
+                    <Text style={styles.btnGuestLoginText}>Đăng Nhập Ngay</Text>
+                  </TouchableOpacity>
+                </View>
+              )}
+            </View>
+
+            {/* Danh Sách Bình Luận */}
+            {commentsLoading && comments.length === 0 ? (
+              <View style={styles.commentsLoadingBox}>
+                <ActivityIndicator size="small" color="#ED1D24" />
+                <Text style={styles.commentsLoadingText}>Đang nạp các bình luận...</Text>
+              </View>
+            ) : comments.length === 0 ? (
+              <View style={styles.emptyCommentsBox}>
+                <Ionicons name="chatbubble-ellipses-outline" size={32} color="#6B7280" />
+                <Text style={styles.emptyCommentsText}>
+                  Chưa có bình luận nào cho chương này. Hãy là người đầu tiên chia sẻ cảm nghĩ!
+                </Text>
+              </View>
+            ) : (
+              <View style={styles.commentsList}>
+                {visibleComments.map((c) => {
+                  const commentAuthor = c.user || {};
+                  const isAdmin = commentAuthor.role === 'admin';
+                  const isVipUser = commentAuthor.role === 'vip' || !isAdmin; // role display
+                  const formattedTime = c.createdAt || c.created_at
+                    ? new Date(c.createdAt || c.created_at).toLocaleString('vi-VN')
+                    : 'Vừa xong';
+
+                  return (
+                    <View key={c.id} style={styles.commentItemCard}>
+                      {/* Header bình luận: Avatar, Tên, Badge, Thời gian, Actions */}
+                      <View style={styles.commentItemHeader}>
+                        <View style={styles.commentAuthorGroup}>
+                          <UserAvatar user={commentAuthor} size={36} />
+                          <View style={{ marginLeft: 10, flex: 1 }}>
+                            <View style={{ flexDirection: 'row', alignItems: 'center', gap: 6 }}>
+                              <Text style={styles.commentAuthorName} numberOfLines={1}>
+                                {commentAuthor.full_name || commentAuthor.username || 'Độc Giả Marvel'}
+                              </Text>
+                              {isAdmin ? (
+                                <View style={styles.roleBadgeAdmin}>
+                                  <Text style={styles.roleBadgeAdminText}>ADMIN</Text>
+                                </View>
+                              ) : isVipUser ? (
+                                <View style={styles.roleBadgeVip}>
+                                  <Text style={styles.roleBadgeVipText}>VIP</Text>
+                                </View>
+                              ) : null}
+                            </View>
+                            <Text style={styles.commentTimestamp}>{formattedTime}</Text>
+                          </View>
+                        </View>
+
+                        {/* Hàng hành động: Thích & Báo cáo */}
+                        <View style={styles.commentActionGroup}>
+                          {/* Nút Thích */}
+                          <TouchableOpacity
+                            style={styles.commentLikeBtn}
+                            onPress={() => handleLikeComment(c.id)}
+                            activeOpacity={0.7}
+                            hitSlop={{ top: 8, bottom: 8, left: 8, right: 8 }}
+                          >
+                            <Ionicons
+                              name={c.is_liked || (c.likes_count > 0) ? 'heart' : 'heart-outline'}
+                              size={16}
+                              color={c.is_liked || (c.likes_count > 0) ? '#ED1D24' : '#9CA3AF'}
+                              style={{ marginRight: 4 }}
+                            />
+                            <Text style={[
+                              styles.commentLikeCount,
+                              (c.is_liked || (c.likes_count > 0)) && { color: '#ED1D24' }
+                            ]}>
+                              {c.likes_count ?? 0}
+                            </Text>
+                          </TouchableOpacity>
+
+                          {/* Nút Báo Cáo */}
+                          <TouchableOpacity
+                            style={styles.commentReportBtn}
+                            onPress={() => handleOpenReport(c.id)}
+                            activeOpacity={0.7}
+                            hitSlop={{ top: 8, bottom: 8, left: 8, right: 8 }}
+                          >
+                            <Ionicons name="flag-outline" size={15} color="#6B7280" />
+                          </TouchableOpacity>
+                        </View>
+                      </View>
+
+                      {/* Nội dung bình luận */}
+                      <Text style={styles.commentContentText}>{c.content}</Text>
+                    </View>
+                  );
+                })}
+
+                {/* Nút Xem Thêm Bình Luận (Phân trang client) */}
+                {comments.length > visibleCommentsCount && (
+                  <TouchableOpacity
+                    style={styles.btnLoadMoreComments}
+                    onPress={() => setVisibleCommentsCount((prev) => prev + 10)}
+                    activeOpacity={0.8}
+                  >
+                    <Ionicons name="chevron-down" size={16} color="#9CA3AF" style={{ marginRight: 6 }} />
+                    <Text style={styles.btnLoadMoreCommentsText}>
+                      Xem thêm bình luận ({comments.length - visibleCommentsCount} bình luận khác)
+                    </Text>
+                  </TouchableOpacity>
+                )}
+              </View>
+            )}
+          </View>
         </ScrollView>
       ) : null}
 
@@ -405,12 +740,138 @@ export default function ChapterReaderScreen({ route, navigation }) {
           setAccessBlocked(null);
           navigation.navigate('Subscriptions');
         }}
+        onBuyStory={() => {
+          if (!isAuthenticated) {
+            setAccessBlocked(null);
+            navigation.navigate('Login');
+            return;
+          }
+          setIsStoryPurchaseModalOpen(true);
+        }}
         onClose={() => setAccessBlocked(null)}
         onGoBack={() => {
           setAccessBlocked(null);
           navigation.goBack();
         }}
       />
+
+      {/* Modal Mua Lẻ Truyện Sandbox */}
+      <SandboxPaymentModal
+        visible={isStoryPurchaseModalOpen}
+        story={{
+          id: accessBlocked?.access_info?.story_id || storyId,
+          title: accessBlocked?.access_info?.story_title || storyTitle || 'Truyện tranh Marvel',
+          price: accessBlocked?.access_info?.story_price || 0,
+        }}
+        paymentType="story_purchase"
+        onClose={() => setIsStoryPurchaseModalOpen(false)}
+        onSuccess={async () => {
+          setIsStoryPurchaseModalOpen(false);
+          setAccessBlocked(null);
+          // Làm mới quyền truy cập và mở khóa chương ngay lập tức
+          await fetchChapterDetail(currentChapterId);
+        }}
+      />
+
+      {/* Modal Báo Cáo Bình Luận Vi Phạm */}
+      <Modal
+        visible={!!reportingCommentId}
+        transparent
+        animationType="fade"
+        onRequestClose={() => setReportingCommentId(null)}
+      >
+        <Pressable
+          style={styles.modalBackdrop}
+          onPress={() => setReportingCommentId(null)}
+        >
+          <Pressable style={styles.reportModalContainer} onPress={(e) => e.stopPropagation()}>
+            <View style={styles.reportModalHeader}>
+              <View style={styles.reportModalTitleRow}>
+                <Ionicons name="flag" size={18} color="#FBBF24" style={{ marginRight: 8 }} />
+                <Text style={styles.reportModalTitle}>Báo Cáo Bình Luận Vi Phạm</Text>
+              </View>
+              <TouchableOpacity
+                onPress={() => setReportingCommentId(null)}
+                style={styles.reportModalCloseBtn}
+              >
+                <Ionicons name="close" size={20} color="#9CA3AF" />
+              </TouchableOpacity>
+            </View>
+
+            <Text style={styles.reportModalSub}>
+              Vui lòng chọn lý do vi phạm để ban quản trị tiến hành xem xét và xử lý:
+            </Text>
+
+            {/* Danh sách lý do */}
+            <View style={styles.reportReasonsList}>
+              {reportReasonsList.map((reason) => {
+                const isSelected = selectedReportReason === reason;
+                return (
+                  <TouchableOpacity
+                    key={reason}
+                    style={[
+                      styles.reportReasonItem,
+                      isSelected && styles.reportReasonItemSelected
+                    ]}
+                    onPress={() => setSelectedReportReason(reason)}
+                    activeOpacity={0.8}
+                  >
+                    <Ionicons
+                      name={isSelected ? 'radio-button-on' : 'radio-button-off'}
+                      size={18}
+                      color={isSelected ? '#ED1D24' : '#6B7280'}
+                      style={{ marginRight: 10 }}
+                    />
+                    <Text style={[
+                      styles.reportReasonText,
+                      isSelected && styles.reportReasonTextSelected
+                    ]}>
+                      {reason}
+                    </Text>
+                  </TouchableOpacity>
+                );
+              })}
+            </View>
+
+            {/* Ô nhập lý do khác nếu chọn */}
+            {selectedReportReason === 'Lý do khác' && (
+              <TextInput
+                style={styles.customReasonInput}
+                placeholder="Nhập chi tiết lý do vi phạm..."
+                placeholderTextColor="#6B7280"
+                value={customReportReason}
+                onChangeText={setCustomReportReason}
+                maxLength={200}
+              />
+            )}
+
+            {/* Các nút bấm hành động */}
+            <View style={styles.reportModalActions}>
+              <TouchableOpacity
+                style={styles.btnCancelReport}
+                onPress={() => setReportingCommentId(null)}
+                disabled={isSubmittingReport}
+                activeOpacity={0.8}
+              >
+                <Text style={styles.btnCancelReportText}>Hủy</Text>
+              </TouchableOpacity>
+
+              <TouchableOpacity
+                style={[styles.btnSubmitReport, isSubmittingReport && { opacity: 0.6 }]}
+                onPress={handleSubmitReport}
+                disabled={isSubmittingReport}
+                activeOpacity={0.85}
+              >
+                {isSubmittingReport ? (
+                  <ActivityIndicator size="small" color="#FFFFFF" />
+                ) : (
+                  <Text style={styles.btnSubmitReportText}>Gửi Báo Cáo</Text>
+                )}
+              </TouchableOpacity>
+            </View>
+          </Pressable>
+        </Pressable>
+      </Modal>
     </SafeAreaView>
   );
 }
@@ -448,153 +909,133 @@ const styles = StyleSheet.create({
     color: '#9CA3AF',
     fontSize: 11,
     fontFamily: 'Inter_600SemiBold',
-    textTransform: 'uppercase',
-    letterSpacing: 0.5,
   },
-  navChapterSubtitle: {
+  navChapterTitleTop: {
+    color: '#FFFFFF',
     fontSize: 13,
     fontFamily: 'Outfit_700Bold',
     marginTop: 1,
   },
-  scrollContent: {
-    padding: 16,
-    paddingBottom: 48,
-  },
-  centerBox: {
-    flex: 1,
-    justifyContent: 'center',
+  navVipButton: {
+    width: 36,
+    height: 36,
+    borderRadius: 18,
+    backgroundColor: 'rgba(251, 191, 36, 0.12)',
+    borderWidth: 1,
+    borderColor: 'rgba(251, 191, 36, 0.35)',
     alignItems: 'center',
+    justifyContent: 'center',
+  },
+  centeredWrapper: {
+    flex: 1,
+    alignItems: 'center',
+    justifyContent: 'center',
     padding: 24,
   },
   loadingText: {
-    color: '#FFFFFF',
-    fontSize: 15,
-    fontFamily: 'Outfit_600SemiBold',
-    marginTop: 16,
-  },
-  loadingSub: {
-    color: '#6B7280',
-    fontSize: 11,
+    color: '#9CA3AF',
+    marginTop: 14,
+    fontSize: 13,
     fontFamily: 'Inter_400Regular',
-    marginTop: 4,
   },
-  errorIconCircle: {
-    width: 68,
-    height: 68,
-    borderRadius: 34,
-    backgroundColor: 'rgba(237, 29, 36, 0.1)',
-    borderWidth: 1.5,
-    borderColor: 'rgba(237, 29, 36, 0.3)',
-    alignItems: 'center',
-    justifyContent: 'center',
-    marginBottom: 16,
-  },
-  errorHeading: {
+  errorTitle: {
     color: '#FFFFFF',
     fontSize: 18,
     fontFamily: 'Outfit_700Bold',
-    marginBottom: 6,
+    marginTop: 14,
   },
-  errorSubHeading: {
+  errorSub: {
     color: '#9CA3AF',
     fontSize: 13,
     fontFamily: 'Inter_400Regular',
     textAlign: 'center',
-    lineHeight: 20,
+    marginTop: 6,
     marginBottom: 20,
-    maxWidth: 300,
+    lineHeight: 18,
   },
   actionBtnPrimary: {
-    flexDirection: 'row',
-    alignItems: 'center',
     backgroundColor: '#ED1D24',
-    paddingHorizontal: 20,
-    paddingVertical: 12,
-    borderRadius: 12,
+    paddingHorizontal: 22,
+    paddingVertical: 11,
+    borderRadius: 10,
   },
   actionBtnPrimaryText: {
     color: '#FFFFFF',
     fontSize: 13,
-    fontFamily: 'Inter_700Bold',
+    fontFamily: 'Outfit_700Bold',
   },
-  heroCoverCard: {
+  scrollContent: {
+    padding: 16,
+    paddingBottom: 40,
+  },
+  chapterHeaderCard: {
     backgroundColor: '#1A1A22',
     borderRadius: 20,
     borderWidth: 1,
     borderColor: '#2A2A38',
-    padding: 16,
+    overflow: 'hidden',
     marginBottom: 20,
   },
-  coverImageContainer: {
+  coverFrame: {
     width: '100%',
-    height: 280,
-    borderRadius: 14,
-    overflow: 'hidden',
+    aspectRatio: 16 / 9,
+    position: 'relative',
     backgroundColor: '#0F0F14',
-    marginBottom: 14,
   },
-  chapterCoverImage: {
+  coverImage: {
     width: '100%',
     height: '100%',
   },
-  metaBadgeRow: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    flexWrap: 'wrap',
-    gap: 8,
-    marginBottom: 10,
+  coverOverlay: {
+    ...StyleSheet.absoluteFillObject,
+    backgroundColor: 'rgba(0, 0, 0, 0.35)',
+  },
+  coverBadgeContainer: {
+    position: 'absolute',
+    bottom: 12,
+    left: 14,
   },
   issueBadge: {
     paddingHorizontal: 10,
     paddingVertical: 4,
     borderRadius: 6,
+    alignSelf: 'flex-start',
   },
   issueBadgeText: {
     color: '#000000',
     fontSize: 11,
-    fontFamily: 'Inter_700Bold',
-    textTransform: 'uppercase',
+    fontFamily: 'Inter_800ExtraBold',
+    letterSpacing: 0.5,
   },
-  dateBadge: {
+  headerInfo: {
+    padding: 16,
+  },
+  metaRow: {
     flexDirection: 'row',
     alignItems: 'center',
-    backgroundColor: 'rgba(255, 255, 255, 0.06)',
-    paddingHorizontal: 8,
-    paddingVertical: 4,
-    borderRadius: 6,
-    borderWidth: 1,
-    borderColor: 'rgba(255, 255, 255, 0.1)',
+    justifyContent: 'space-between',
+    marginBottom: 8,
   },
-  dateBadgeText: {
-    color: '#D1D5DB',
-    fontSize: 11,
+  metaItem: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 4,
+  },
+  metaText: {
+    color: '#9CA3AF',
+    fontSize: 12,
     fontFamily: 'Inter_400Regular',
   },
-  previewBadge: {
+  previewPill: {
     backgroundColor: 'rgba(52, 211, 153, 0.15)',
     borderColor: 'rgba(52, 211, 153, 0.4)',
     borderWidth: 1,
-    paddingHorizontal: 8,
-    paddingVertical: 4,
     borderRadius: 6,
+    paddingHorizontal: 8,
+    paddingVertical: 2,
   },
-  previewBadgeText: {
+  previewPillText: {
     color: '#34D399',
-    fontSize: 10,
-    fontFamily: 'Inter_700Bold',
-  },
-  vipBadge: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    backgroundColor: 'rgba(251, 191, 36, 0.15)',
-    borderColor: 'rgba(251, 191, 36, 0.4)',
-    borderWidth: 1,
-    paddingHorizontal: 8,
-    paddingVertical: 4,
-    borderRadius: 6,
-  },
-  vipBadgeText: {
-    color: '#FBBF24',
     fontSize: 10,
     fontFamily: 'Inter_700Bold',
   },
@@ -605,107 +1046,97 @@ const styles = StyleSheet.create({
     lineHeight: 28,
   },
   pullQuoteBox: {
-    backgroundColor: '#1A1A22',
-    borderRadius: 16,
+    backgroundColor: '#16161F',
     borderLeftWidth: 4,
+    borderRadius: 14,
     padding: 16,
-    marginBottom: 22,
+    marginBottom: 20,
     position: 'relative',
   },
-  quoteMark: {
-    position: 'absolute',
-    top: -10,
-    left: 12,
-    fontSize: 48,
-    color: 'rgba(255, 255, 255, 0.08)',
+  quoteSymbol: {
+    fontSize: 32,
     fontFamily: 'Italiana_400Regular',
+    lineHeight: 32,
+    marginBottom: -10,
+    opacity: 0.6,
   },
   pullQuoteText: {
     color: '#FFFFFF',
-    fontSize: 16,
+    fontSize: 15,
     fontFamily: 'Italiana_400Regular',
     fontStyle: 'italic',
-    lineHeight: 24,
-    marginBottom: 8,
+    lineHeight: 22,
+    letterSpacing: 0.3,
   },
-  pullQuoteAuthor: {
-    color: '#9CA3AF',
-    fontSize: 11,
-    fontFamily: 'Inter_600SemiBold',
-    textTransform: 'uppercase',
-    letterSpacing: 0.5,
+  contentSection: {
+    backgroundColor: '#1A1A22',
+    borderRadius: 20,
+    borderWidth: 1,
+    borderColor: '#2A2A38',
+    padding: 20,
+    marginBottom: 20,
+    gap: 16,
   },
-  articleSection: {
-    marginBottom: 28,
-  },
-  merriweatherParagraph: {
+  paragraphText: {
     color: '#E5E7EB',
-    fontSize: 16,
-    fontFamily: 'Merriweather_400Regular',
-    lineHeight: 28,
-    marginBottom: 18,
-    textAlign: 'justify',
+    fontSize: 15,
+    fontFamily: 'Merriweather_300Light',
+    lineHeight: 27,
+    letterSpacing: 0.2,
   },
   charactersSection: {
-    borderTopWidth: 1,
-    borderTopColor: '#2A2A38',
-    paddingTop: 20,
-    marginBottom: 28,
+    backgroundColor: '#1A1A22',
+    borderRadius: 20,
+    borderWidth: 1,
+    borderColor: '#2A2A38',
+    padding: 16,
+    marginBottom: 20,
   },
   charactersSectionHeader: {
     flexDirection: 'row',
     alignItems: 'center',
     marginBottom: 14,
   },
-  charactersSectionTitle: {
+  charactersHeading: {
     color: '#FFFFFF',
     fontSize: 16,
     fontFamily: 'Outfit_700Bold',
   },
   charactersScroll: {
     gap: 12,
-    paddingBottom: 4,
+    paddingRight: 12,
   },
   characterCard: {
     width: 90,
     alignItems: 'center',
-    backgroundColor: '#1A1A22',
-    borderWidth: 1,
-    borderColor: '#2A2A38',
-    borderRadius: 14,
-    padding: 10,
   },
   charAvatarWrapper: {
-    width: 52,
-    height: 52,
-    borderRadius: 26,
+    width: 60,
+    height: 60,
+    borderRadius: 30,
     overflow: 'hidden',
-    borderWidth: 1.5,
+    borderWidth: 2,
     backgroundColor: '#0F0F14',
-    marginBottom: 8,
+    marginBottom: 6,
   },
   charAvatar: {
     width: '100%',
     height: '100%',
   },
   charFallbackIcon: {
-    width: '100%',
-    height: '100%',
+    flex: 1,
     alignItems: 'center',
     justifyContent: 'center',
-    backgroundColor: '#16161F',
   },
   charName: {
     color: '#D1D5DB',
     fontSize: 11,
-    fontFamily: 'Inter_600SemiBold',
+    fontFamily: 'Inter_500Medium',
     textAlign: 'center',
     lineHeight: 14,
   },
   chapterNavSection: {
-    borderTopWidth: 1,
-    borderTopColor: '#2A2A38',
-    paddingTop: 20,
+    marginBottom: 24,
   },
   chapterNavGrid: {
     flexDirection: 'row',
@@ -713,20 +1144,20 @@ const styles = StyleSheet.create({
   },
   chapterNavCard: {
     flex: 1,
-    flexDirection: 'row',
-    alignItems: 'center',
     backgroundColor: '#1A1A22',
     borderRadius: 14,
     borderWidth: 1,
     borderColor: '#2A2A38',
     padding: 10,
+    flexDirection: 'row',
+    alignItems: 'center',
   },
   navThumb: {
-    width: 40,
-    height: 54,
-    borderRadius: 8,
-    marginRight: 10,
+    width: 44,
+    height: 58,
+    borderRadius: 6,
     backgroundColor: '#0F0F14',
+    marginRight: 10,
   },
   navDirectionText: {
     fontSize: 10,
@@ -740,9 +1171,372 @@ const styles = StyleSheet.create({
     marginTop: 2,
   },
   navIssueNumber: {
+    color: '#6B7280',
+    fontSize: 10,
+    fontFamily: 'Inter_400Regular',
+    marginTop: 2,
+  },
+  commentsSection: {
+    backgroundColor: '#1A1A22',
+    borderRadius: 20,
+    borderWidth: 1,
+    borderColor: '#2A2A38',
+    padding: 16,
+    marginTop: 8,
+  },
+  commentsSectionHeader: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    marginBottom: 16,
+    gap: 12,
+  },
+  commentIconCircle: {
+    width: 36,
+    height: 36,
+    borderRadius: 12,
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  commentsHeading: {
+    color: '#FFFFFF',
+    fontSize: 16,
+    fontFamily: 'Outfit_700Bold',
+  },
+  commentsCountBadge: {
+    backgroundColor: '#2A2A38',
+    paddingHorizontal: 8,
+    paddingVertical: 2,
+    borderRadius: 10,
+  },
+  commentsCountBadgeText: {
+    color: '#D1D5DB',
+    fontSize: 11,
+    fontFamily: 'Inter_600SemiBold',
+  },
+  commentsSubHeading: {
     color: '#9CA3AF',
+    fontSize: 11,
+    fontFamily: 'Inter_400Regular',
+    marginTop: 2,
+  },
+  commentInputBox: {
+    backgroundColor: '#0F0F14',
+    borderRadius: 14,
+    borderWidth: 1,
+    borderColor: '#2A2A38',
+    padding: 14,
+    marginBottom: 20,
+  },
+  currentUserInfoRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    marginBottom: 10,
+  },
+  currentUserLabel: {
+    color: '#9CA3AF',
+    fontSize: 12,
+    fontFamily: 'Inter_400Regular',
+    marginLeft: 10,
+  },
+  currentUserName: {
+    color: '#FFFFFF',
+    fontFamily: 'Inter_700Bold',
+  },
+  commentTextInput: {
+    backgroundColor: '#1A1A22',
+    borderRadius: 10,
+    borderWidth: 1,
+    borderColor: '#2A2A38',
+    padding: 12,
+    color: '#FFFFFF',
+    fontSize: 13,
+    fontFamily: 'Inter_400Regular',
+    minHeight: 70,
+    textAlignVertical: 'top',
+  },
+  commentInputFooter: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+    marginTop: 10,
+  },
+  charCountText: {
+    color: '#6B7280',
+    fontSize: 11,
+    fontFamily: 'Inter_400Regular',
+  },
+  btnSubmitComment: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    backgroundColor: '#ED1D24',
+    paddingHorizontal: 14,
+    paddingVertical: 8,
+    borderRadius: 8,
+  },
+  btnSubmitCommentDisabled: {
+    opacity: 0.5,
+  },
+  btnSubmitCommentText: {
+    color: '#FFFFFF',
+    fontSize: 12,
+    fontFamily: 'Outfit_700Bold',
+  },
+  guestNoticeBox: {
+    alignItems: 'center',
+    paddingVertical: 14,
+  },
+  guestNoticeText: {
+    color: '#9CA3AF',
+    fontSize: 12,
+    fontFamily: 'Inter_400Regular',
+    textAlign: 'center',
+    marginBottom: 12,
+    paddingHorizontal: 16,
+  },
+  btnGuestLogin: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    backgroundColor: '#ED1D24',
+    paddingHorizontal: 16,
+    paddingVertical: 8,
+    borderRadius: 8,
+  },
+  btnGuestLoginText: {
+    color: '#FFFFFF',
+    fontSize: 12,
+    fontFamily: 'Outfit_700Bold',
+  },
+  commentsLoadingBox: {
+    paddingVertical: 24,
+    alignItems: 'center',
+  },
+  commentsLoadingText: {
+    color: '#9CA3AF',
+    fontSize: 12,
+    fontFamily: 'Inter_400Regular',
+    marginTop: 8,
+  },
+  emptyCommentsBox: {
+    paddingVertical: 24,
+    alignItems: 'center',
+    paddingHorizontal: 20,
+  },
+  emptyCommentsText: {
+    color: '#6B7280',
+    fontSize: 12,
+    fontFamily: 'Inter_400Regular',
+    textAlign: 'center',
+    marginTop: 8,
+    lineHeight: 18,
+  },
+  commentsList: {
+    gap: 12,
+  },
+  commentItemCard: {
+    backgroundColor: '#16161F',
+    borderRadius: 14,
+    borderWidth: 1,
+    borderColor: '#2A2A38',
+    padding: 12,
+  },
+  commentItemHeader: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+    marginBottom: 8,
+  },
+  commentAuthorGroup: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    flex: 1,
+  },
+  commentAuthorName: {
+    color: '#FFFFFF',
+    fontSize: 13,
+    fontFamily: 'Outfit_600SemiBold',
+  },
+  roleBadgeAdmin: {
+    backgroundColor: 'rgba(237, 29, 36, 0.2)',
+    borderColor: 'rgba(237, 29, 36, 0.4)',
+    borderWidth: 1,
+    borderRadius: 4,
+    paddingHorizontal: 5,
+    paddingVertical: 1,
+  },
+  roleBadgeAdminText: {
+    color: '#ED1D24',
+    fontSize: 9,
+    fontFamily: 'Inter_700Bold',
+  },
+  roleBadgeVip: {
+    backgroundColor: 'rgba(251, 191, 36, 0.15)',
+    borderColor: 'rgba(251, 191, 36, 0.4)',
+    borderWidth: 1,
+    borderRadius: 4,
+    paddingHorizontal: 5,
+    paddingVertical: 1,
+  },
+  roleBadgeVipText: {
+    color: '#FBBF24',
+    fontSize: 9,
+    fontFamily: 'Inter_700Bold',
+  },
+  commentTimestamp: {
+    color: '#6B7280',
     fontSize: 10,
     fontFamily: 'Inter_400Regular',
     marginTop: 1,
+  },
+  commentActionGroup: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 8,
+  },
+  commentLikeBtn: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    paddingHorizontal: 8,
+    paddingVertical: 4,
+    backgroundColor: 'rgba(255, 255, 255, 0.04)',
+    borderRadius: 6,
+  },
+  commentLikeCount: {
+    color: '#9CA3AF',
+    fontSize: 11,
+    fontFamily: 'Inter_600SemiBold',
+  },
+  commentReportBtn: {
+    padding: 5,
+  },
+  commentContentText: {
+    color: '#E5E7EB',
+    fontSize: 13,
+    fontFamily: 'Inter_400Regular',
+    lineHeight: 19,
+    marginTop: 2,
+  },
+  btnLoadMoreComments: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
+    backgroundColor: '#0F0F14',
+    borderWidth: 1,
+    borderColor: '#2A2A38',
+    borderRadius: 10,
+    paddingVertical: 10,
+    marginTop: 8,
+  },
+  btnLoadMoreCommentsText: {
+    color: '#9CA3AF',
+    fontSize: 12,
+    fontFamily: 'Inter_600SemiBold',
+  },
+  modalBackdrop: {
+    flex: 1,
+    backgroundColor: 'rgba(0, 0, 0, 0.82)',
+    justifyContent: 'center',
+    alignItems: 'center',
+    padding: 20,
+  },
+  reportModalContainer: {
+    width: '100%',
+    maxWidth: 400,
+    backgroundColor: '#1A1A22',
+    borderRadius: 20,
+    borderWidth: 1,
+    borderColor: '#374151',
+    padding: 18,
+  },
+  reportModalHeader: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+    marginBottom: 10,
+  },
+  reportModalTitleRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+  },
+  reportModalTitle: {
+    color: '#FFFFFF',
+    fontSize: 15,
+    fontFamily: 'Outfit_700Bold',
+  },
+  reportModalCloseBtn: {
+    padding: 4,
+  },
+  reportModalSub: {
+    color: '#9CA3AF',
+    fontSize: 11,
+    fontFamily: 'Inter_400Regular',
+    marginBottom: 14,
+    lineHeight: 16,
+  },
+  reportReasonsList: {
+    gap: 8,
+    marginBottom: 14,
+  },
+  reportReasonItem: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    backgroundColor: '#0F0F14',
+    borderWidth: 1,
+    borderColor: '#2A2A38',
+    borderRadius: 10,
+    paddingHorizontal: 12,
+    paddingVertical: 10,
+  },
+  reportReasonItemSelected: {
+    borderColor: '#ED1D24',
+    backgroundColor: 'rgba(237, 29, 36, 0.08)',
+  },
+  reportReasonText: {
+    color: '#D1D5DB',
+    fontSize: 12,
+    fontFamily: 'Inter_500Medium',
+    flex: 1,
+  },
+  reportReasonTextSelected: {
+    color: '#FFFFFF',
+    fontFamily: 'Inter_700Bold',
+  },
+  customReasonInput: {
+    backgroundColor: '#0F0F14',
+    borderRadius: 10,
+    borderWidth: 1,
+    borderColor: '#2A2A38',
+    padding: 10,
+    color: '#FFFFFF',
+    fontSize: 12,
+    fontFamily: 'Inter_400Regular',
+    marginBottom: 14,
+  },
+  reportModalActions: {
+    flexDirection: 'row',
+    justifyContent: 'flex-end',
+    gap: 10,
+    marginTop: 6,
+  },
+  btnCancelReport: {
+    paddingHorizontal: 16,
+    paddingVertical: 10,
+    borderRadius: 8,
+    backgroundColor: '#2A2A38',
+  },
+  btnCancelReportText: {
+    color: '#D1D5DB',
+    fontSize: 12,
+    fontFamily: 'Inter_600SemiBold',
+  },
+  btnSubmitReport: {
+    paddingHorizontal: 18,
+    paddingVertical: 10,
+    borderRadius: 8,
+    backgroundColor: '#ED1D24',
+  },
+  btnSubmitReportText: {
+    color: '#FFFFFF',
+    fontSize: 12,
+    fontFamily: 'Outfit_700Bold',
   },
 });

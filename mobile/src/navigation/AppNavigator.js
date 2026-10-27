@@ -7,12 +7,15 @@ import { Ionicons } from '@expo/vector-icons';
 import { useAuth } from '../context/AuthContext';
 
 import LoginScreen from '../screens/LoginScreen';
+import RegisterScreen from '../screens/RegisterScreen';
+import ProfileEditScreen from '../screens/ProfileEditScreen';
 import HomeScreen from '../screens/HomeScreen';
 import StoryDetailScreen from '../screens/StoryDetailScreen';
 import ChapterReaderScreen from '../screens/ChapterReaderScreen';
 import SubscriptionsScreen from '../screens/SubscriptionsScreen';
 import AccountScreen from '../screens/AccountScreen';
 import ComingSoonScreen from '../screens/ComingSoonScreen';
+
 
 const Stack = createNativeStackNavigator();
 const Tab = createBottomTabNavigator();
@@ -99,22 +102,39 @@ export default function AppNavigator() {
   return (
     <NavigationContainer>
       <Stack.Navigator
+        initialRouteName={isAuthenticated ? 'Main' : 'Login'}
         screenOptions={{
           headerShown: false,
           contentStyle: { backgroundColor: '#0F0F14' }
         }}
       >
-        {isAuthenticated ? (
-          <>
-            <Stack.Screen name="Main" component={MainTabNavigator} />
-            <Stack.Screen name="ChapterReader" component={ChapterReaderScreen} />
-            <Stack.Screen name="Subscriptions" component={SubscriptionsScreen} />
-            <Stack.Screen name="ComingSoon" component={ComingSoonScreen} />
-          </>
-        ) : (
-          <Stack.Screen name="Login" component={LoginScreen} />
-        )}
+        <Stack.Screen name="Main" component={MainTabNavigator} />
+        <Stack.Screen name="ChapterReader" component={ChapterReaderScreen} />
+        <Stack.Screen name="Subscriptions" component={SubscriptionsScreen} />
+        <Stack.Screen name="ComingSoon" component={ComingSoonScreen} />
+        <Stack.Screen
+          name="Login"
+          component={LoginScreen}
+          options={{
+            animation: 'slide_from_bottom',
+          }}
+        />
+        <Stack.Screen
+          name="Register"
+          component={RegisterScreen}
+          options={{
+            animation: 'slide_from_right',
+          }}
+        />
+        <Stack.Screen
+          name="ProfileEdit"
+          component={ProfileEditScreen}
+          options={{
+            animation: 'slide_from_right',
+          }}
+        />
       </Stack.Navigator>
+
     </NavigationContainer>
   );
 }

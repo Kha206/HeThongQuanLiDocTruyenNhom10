@@ -11,7 +11,7 @@ import {
 } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import { useAuth } from '../context/AuthContext';
-import ProxiedImage from '../components/ProxiedImage';
+import UserAvatar from '../components/UserAvatar';
 
 export default function AccountScreen({ navigation }) {
   const { user, mySubscription, isVip, purchasedStories, logout } = useAuth();
@@ -33,11 +33,6 @@ export default function AccountScreen({ navigation }) {
     );
   };
 
-  const getInitialLetter = () => {
-    const name = user?.full_name || user?.username || 'U';
-    return name.trim().charAt(0).toUpperCase();
-  };
-
   return (
     <SafeAreaView style={styles.safeArea}>
       <StatusBar barStyle="light-content" backgroundColor="#0F0F14" />
@@ -48,29 +43,53 @@ export default function AccountScreen({ navigation }) {
         </View>
 
         {/* Profile Card */}
-        <View style={styles.profileCard}>
-          <View style={styles.avatarRow}>
-            {user?.avatar ? (
-              <ProxiedImage
-                url={user.avatar}
-                style={styles.avatarImage}
-                fallbackIcon="person"
-              />
-            ) : (
-              <View style={styles.initialAvatar}>
-                <Text style={styles.initialText}>{getInitialLetter()}</Text>
+        {user ? (
+          <View style={styles.profileCard}>
+            <View style={styles.avatarRow}>
+              <UserAvatar user={user} size={64} />
+              <View style={styles.profileInfo}>
+                <Text style={styles.fullName} numberOfLines={1}>
+                  {user.full_name || user.username || 'Độc Giả Marvel'}
+                </Text>
+                <Text style={styles.username}>@{user.username || 'reader'}</Text>
+                <Text style={styles.email} numberOfLines={1}>{user.email || ''}</Text>
               </View>
-            )}
-
-            <View style={styles.profileInfo}>
-              <Text style={styles.fullName} numberOfLines={1}>
-                {user?.full_name || user?.username || 'Độc Giả Marvel'}
-              </Text>
-              <Text style={styles.username}>@{user?.username || 'reader'}</Text>
-              <Text style={styles.email} numberOfLines={1}>{user?.email || ''}</Text>
             </View>
+
+            {/* Mục Chỉnh Sửa Hồ Sơ */}
+            <TouchableOpacity
+              style={styles.editProfileBtn}
+              onPress={() => navigation.navigate('ProfileEdit')}
+              activeOpacity={0.8}
+            >
+              <Ionicons name="create-outline" size={17} color="#FFFFFF" style={{ marginRight: 8 }} />
+              <Text style={styles.editProfileBtnText}>Chỉnh Sửa Hồ Sơ</Text>
+              <Ionicons name="chevron-forward" size={16} color="#9CA3AF" style={{ marginLeft: 'auto' }} />
+            </TouchableOpacity>
           </View>
-        </View>
+        ) : (
+
+          <View style={styles.profileCard}>
+            <View style={styles.avatarRow}>
+              <View style={styles.guestAvatar}>
+                <Ionicons name="person-outline" size={32} color="#9CA3AF" />
+              </View>
+              <View style={styles.profileInfo}>
+                <Text style={styles.fullName}>Khách Vãng Lai</Text>
+                <Text style={styles.username}>Chưa đăng nhập</Text>
+                <Text style={styles.email}>Đăng nhập để sở hữu VIP và lưu truyện mua</Text>
+              </View>
+            </View>
+            <TouchableOpacity
+              style={styles.loginBtnAccount}
+              onPress={() => navigation.navigate('Login')}
+              activeOpacity={0.85}
+            >
+              <Ionicons name="log-in-outline" size={18} color="#FFFFFF" style={{ marginRight: 6 }} />
+              <Text style={styles.loginBtnAccountText}>Đăng Nhập Ngay</Text>
+            </TouchableOpacity>
+          </View>
+        )}
 
         {/* Membership VIP Badge Card */}
         <View style={styles.sectionCard}>
@@ -138,15 +157,41 @@ export default function AccountScreen({ navigation }) {
           </View>
           <View style={styles.purchasedBox}>
             <Text style={styles.purchasedCountText}>
-              Đã sở hữu: <Text style={{ color: '#FFFFFF', fontWeight: '700' }}>{purchasedStories.length}</Text> bộ truyện
+              Đã mua: <Text style={{ color: '#34D399', fontWeight: '700' }}>{purchasedStories.length}</Text> bộ truyện
             </Text>
+            {purchasedStories.length > 0 ? (
+              <View style={styles.purchasedList}>
+                {purchasedStories.map((item) => (
+                  <TouchableOpacity
+                    key={item.purchase_id || item.story_id}
+                    style={styles.purchasedItem}
+                    onPress={() => {
+                      if (item.story_id) {
+                        navigation.navigate('StoryDetail', { storyId: item.story_id });
+                      }
+                    }}
+                    activeOpacity={0.8}
+                  >
+                    <Ionicons name="checkmark-circle" size={16} color="#34D399" style={{ marginRight: 8 }} />
+                    <Text style={styles.purchasedItemTitle} numberOfLines={1}>
+                      {item.story?.title || `Bộ truyện #${item.story_id}`}
+                    </Text>
+                    <Ionicons name="chevron-forward" size={16} color="#6B7280" />
+                  </TouchableOpacity>
+                ))}
+              </View>
+            ) : (
+              <Text style={styles.emptyPurchasedText}>
+                Bạn chưa mua riêng bộ truyện nào. Các truyện đã mua bản quyền sẽ mở khóa vĩnh viễn tại đây.
+              </Text>
+            )}
           </View>
         </View>
 
-        {/* Nguồn dữ liệu Comic Vine (Bắt buộc theo yêu cầu) */}
+        {/* Nguồn dữ liệu & Bản quyền Comic Vine */}
         <View style={styles.creditCard}>
           <View style={styles.creditHeader}>
-            <Ionicons name="shield-checkmark-outline" size={18} color="#34D399" style={{ marginRight: 6 }} />
+            <Ionicons name="shield-checkmark" size={18} color="#ED1D24" style={{ marginRight: 6 }} />
             <Text style={styles.creditTitle}>Nguồn dữ liệu Comic Vine</Text>
           </View>
           <Text style={styles.creditBody}>
@@ -157,11 +202,13 @@ export default function AccountScreen({ navigation }) {
           </Text>
         </View>
 
-        {/* Logout Button */}
-        <TouchableOpacity style={styles.logoutButton} onPress={handleLogout} activeOpacity={0.8}>
-          <Ionicons name="log-out-outline" size={20} color="#F87171" style={{ marginRight: 8 }} />
-          <Text style={styles.logoutButtonText}>Đăng Xuất</Text>
-        </TouchableOpacity>
+        {/* Logout Button (Chỉ hiện khi đã đăng nhập) */}
+        {user ? (
+          <TouchableOpacity style={styles.logoutButton} onPress={handleLogout} activeOpacity={0.8}>
+            <Ionicons name="log-out-outline" size={20} color="#F87171" style={{ marginRight: 8 }} />
+            <Text style={styles.logoutButtonText}>Đăng Xuất</Text>
+          </TouchableOpacity>
+        ) : null}
       </ScrollView>
     </SafeAreaView>
   );
@@ -199,30 +246,45 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     gap: 16,
   },
-  avatarImage: {
-    width: 68,
-    height: 68,
-    borderRadius: 34,
-    borderWidth: 2,
-    borderColor: '#ED1D24',
-  },
-  initialAvatar: {
-    width: 68,
-    height: 68,
-    borderRadius: 34,
-    backgroundColor: '#ED1D24',
+  guestAvatar: {
+    width: 64,
+    height: 64,
+    borderRadius: 32,
+    backgroundColor: '#2A2A38',
+    borderWidth: 1.5,
+    borderColor: '#3E3E50',
     alignItems: 'center',
     justifyContent: 'center',
-    shadowColor: '#ED1D24',
-    shadowOffset: { width: 0, height: 4 },
-    shadowOpacity: 0.35,
-    shadowRadius: 6,
-    elevation: 4,
   },
-  initialText: {
+  editProfileBtn: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    backgroundColor: '#2A2A38',
+    borderRadius: 12,
+    borderWidth: 1,
+    borderColor: '#3E3E50',
+    paddingVertical: 10,
+    paddingHorizontal: 14,
+    marginTop: 14,
+  },
+  editProfileBtnText: {
     color: '#FFFFFF',
-    fontSize: 28,
-    fontWeight: '900',
+    fontSize: 13,
+    fontWeight: '600',
+    fontFamily: 'Inter_600SemiBold',
+  },
+  loginBtnAccount: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
+    backgroundColor: '#ED1D24',
+    borderRadius: 12,
+    paddingVertical: 11,
+    marginTop: 14,
+  },
+  loginBtnAccountText: {
+    color: '#FFFFFF',
+    fontSize: 13,
     fontFamily: 'Outfit_700Bold',
   },
   profileInfo: {
@@ -321,10 +383,45 @@ const styles = StyleSheet.create({
     fontFamily: 'Inter_600SemiBold',
   },
   standardMemberSub: {
-    color: '#6B7280',
+    color: '#9CA3AF',
     fontSize: 12,
-    lineHeight: 17,
+    lineHeight: 18,
+    marginBottom: 14,
     fontFamily: 'Inter_400Regular',
+  },
+  subUpgradeBtn: {
+    backgroundColor: '#F59E0B',
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
+    borderRadius: 10,
+    paddingVertical: 12,
+    shadowColor: '#F59E0B',
+    shadowOffset: { width: 0, height: 4 },
+    shadowOpacity: 0.3,
+    shadowRadius: 6,
+    elevation: 3,
+  },
+  subUpgradeBtnText: {
+    color: '#000000',
+    fontWeight: '700',
+    fontSize: 13,
+    fontFamily: 'Inter_700Bold',
+  },
+  subManageBtn: {
+    backgroundColor: '#F59E0B',
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
+    borderRadius: 10,
+    paddingVertical: 10,
+    marginTop: 10,
+  },
+  subManageBtnText: {
+    color: '#000000',
+    fontWeight: '700',
+    fontSize: 12,
+    fontFamily: 'Inter_700Bold',
   },
   purchasedBox: {
     backgroundColor: '#0F0F14',
@@ -334,26 +431,52 @@ const styles = StyleSheet.create({
     borderColor: '#2A2A38',
   },
   purchasedCountText: {
-    color: '#9CA3AF',
+    color: '#D1D5DB',
     fontSize: 13,
+    fontFamily: 'Inter_500Medium',
+    marginBottom: 8,
+  },
+  emptyPurchasedText: {
+    color: '#6B7280',
+    fontSize: 12,
+    lineHeight: 18,
     fontFamily: 'Inter_400Regular',
   },
-  creditCard: {
-    backgroundColor: '#12121A',
-    borderRadius: 16,
-    padding: 14,
+  purchasedList: {
+    gap: 8,
+    marginTop: 6,
+  },
+  purchasedItem: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    backgroundColor: '#16161F',
+    borderRadius: 10,
+    padding: 10,
     borderWidth: 1,
-    borderColor: 'rgba(52, 211, 153, 0.25)',
-    marginBottom: 24,
+    borderColor: '#2A2A38',
+  },
+  purchasedItemTitle: {
+    color: '#FFFFFF',
+    fontSize: 13,
+    fontFamily: 'Outfit_600SemiBold',
+    flex: 1,
+  },
+  creditCard: {
+    backgroundColor: '#1A1A22',
+    borderRadius: 16,
+    padding: 16,
+    borderWidth: 1,
+    borderColor: '#2A2A38',
+    marginBottom: 20,
   },
   creditHeader: {
     flexDirection: 'row',
     alignItems: 'center',
-    marginBottom: 6,
+    marginBottom: 8,
   },
   creditTitle: {
-    color: '#34D399',
-    fontSize: 13,
+    color: '#FFFFFF',
+    fontSize: 14,
     fontWeight: '700',
     fontFamily: 'Outfit_700Bold',
   },
@@ -361,8 +484,8 @@ const styles = StyleSheet.create({
     color: '#9CA3AF',
     fontSize: 11,
     lineHeight: 16,
+    marginBottom: 10,
     fontFamily: 'Inter_400Regular',
-    marginBottom: 6,
   },
   creditFooter: {
     color: '#6B7280',
@@ -375,42 +498,15 @@ const styles = StyleSheet.create({
     justifyContent: 'center',
     backgroundColor: 'rgba(239, 68, 68, 0.1)',
     borderRadius: 12,
-    paddingVertical: 14,
     borderWidth: 1,
-    borderColor: 'rgba(239, 68, 68, 0.35)',
+    borderColor: 'rgba(239, 68, 68, 0.3)',
+    paddingVertical: 14,
+    marginBottom: 20,
   },
   logoutButtonText: {
     color: '#F87171',
-    fontSize: 14,
     fontWeight: '700',
+    fontSize: 14,
     fontFamily: 'Outfit_700Bold',
-  },
-  subManageBtn: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    justifyContent: 'center',
-    backgroundColor: '#F59E0B',
-    borderRadius: 10,
-    paddingVertical: 10,
-    marginTop: 12,
-  },
-  subManageBtnText: {
-    color: '#000000',
-    fontSize: 12,
-    fontFamily: 'Inter_700Bold',
-  },
-  subUpgradeBtn: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    justifyContent: 'center',
-    backgroundColor: '#F59E0B',
-    borderRadius: 10,
-    paddingVertical: 10,
-    marginTop: 12,
-  },
-  subUpgradeBtnText: {
-    color: '#000000',
-    fontSize: 12,
-    fontFamily: 'Inter_700Bold',
   },
 });

@@ -13,14 +13,16 @@ import {
 } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import { useAuth } from '../context/AuthContext';
+import PasswordInput from '../components/PasswordInput';
 
-export default function LoginScreen() {
+export default function LoginScreen({ navigation }) {
   const { login } = useAuth();
   const [loginId, setLoginId] = useState('');
   const [password, setPassword] = useState('');
-  const [showPassword, setShowPassword] = useState(false);
   const [loading, setLoading] = useState(false);
   const [errorMessage, setErrorMessage] = useState(null);
+
+  const canGoBack = navigation?.canGoBack && navigation.canGoBack();
 
   const handleLogin = async () => {
     setErrorMessage(null);
@@ -37,6 +39,11 @@ export default function LoginScreen() {
     setLoading(true);
     try {
       await login(loginId, password);
+      if (canGoBack) {
+        navigation.goBack();
+      } else {
+        navigation.navigate('Main');
+      }
     } catch (err) {
       setErrorMessage(err.message || 'Tài khoản hoặc mật khẩu không chính xác.');
     } finally {
@@ -54,6 +61,19 @@ export default function LoginScreen() {
         contentContainerStyle={styles.scrollContent}
         keyboardShouldPersistTaps="handled"
       >
+        {/* Top Back Button if navigated from other screen */}
+        {canGoBack && (
+          <View style={styles.topNavRow}>
+            <TouchableOpacity
+              onPress={() => navigation.goBack()}
+              style={styles.backBtn}
+              hitSlop={{ top: 10, bottom: 10, left: 10, right: 10 }}
+            >
+              <Ionicons name="arrow-back" size={20} color="#FFFFFF" />
+            </TouchableOpacity>
+          </View>
+        )}
+
         {/* Marvel Branding Header */}
         <View style={styles.header}>
           <View style={styles.marvelBadge}>
@@ -97,37 +117,18 @@ export default function LoginScreen() {
             </View>
           </View>
 
-          {/* Password Input */}
-          <View style={styles.inputGroup}>
-            <Text style={styles.label}>Mật khẩu</Text>
-            <View style={styles.inputWrapper}>
-              <Ionicons name="lock-closed-outline" size={18} color="#9CA3AF" style={styles.inputIcon} />
-              <TextInput
-                style={styles.input}
-                placeholder="Nhập mật khẩu..."
-                placeholderTextColor="#6B7280"
-                secureTextEntry={!showPassword}
-                value={password}
-                onChangeText={(text) => {
-                  setPassword(text);
-                  if (errorMessage) setErrorMessage(null);
-                }}
-                autoCapitalize="none"
-                autoCorrect={false}
-              />
-              <TouchableOpacity
-                style={styles.eyeButton}
-                onPress={() => setShowPassword(!showPassword)}
-                accessibilityLabel={showPassword ? 'Ẩn mật khẩu' : 'Hiện mật khẩu'}
-              >
-                <Ionicons
-                  name={showPassword ? 'eye-off-outline' : 'eye-outline'}
-                  size={20}
-                  color="#9CA3AF"
-                />
-              </TouchableOpacity>
-            </View>
-          </View>
+          {/* Password Input using reusable PasswordInput */}
+          <PasswordInput
+            label="Mật khẩu"
+            placeholder="Nhập mật khẩu..."
+            value={password}
+            onChangeText={(text) => {
+              setPassword(text);
+              if (errorMessage) setErrorMessage(null);
+            }}
+            returnKeyType="done"
+            onSubmitEditing={handleLogin}
+          />
 
           {/* Submit Button */}
           <TouchableOpacity
@@ -145,7 +146,31 @@ export default function LoginScreen() {
               </View>
             )}
           </TouchableOpacity>
+
+          {/* Register Prompt */}
+          <View style={styles.registerPromptRow}>
+            <Text style={styles.registerPromptText}>Chưa có tài khoản? </Text>
+            <TouchableOpacity
+              onPress={() => navigation.navigate('Register')}
+              activeOpacity={0.7}
+              hitSlop={{ top: 8, bottom: 8, left: 8, right: 8 }}
+            >
+              <Text style={styles.registerLinkText}>Đăng ký ngay</Text>
+            </TouchableOpacity>
+          </View>
+
+          {/* Option: Khám phá trước không cần đăng nhập */}
+          {!canGoBack && (
+            <TouchableOpacity
+              style={styles.skipBtn}
+              onPress={() => navigation.navigate('Main')}
+              activeOpacity={0.7}
+            >
+              <Text style={styles.skipBtnText}>Khám phá kho truyện trước ›</Text>
+            </TouchableOpacity>
+          )}
         </View>
+
 
         {/* Footer note */}
         <View style={styles.footer}>
@@ -167,6 +192,19 @@ const styles = StyleSheet.create({
     flexGrow: 1,
     justifyContent: 'center',
     padding: 24,
+  },
+  topNavRow: {
+    marginBottom: 16,
+  },
+  backBtn: {
+    width: 36,
+    height: 36,
+    borderRadius: 18,
+    backgroundColor: '#1A1A22',
+    borderWidth: 1,
+    borderColor: '#2A2A38',
+    alignItems: 'center',
+    justifyContent: 'center',
   },
   header: {
     alignItems: 'center',
@@ -292,6 +330,34 @@ const styles = StyleSheet.create({
     fontWeight: '700',
     letterSpacing: 1,
     fontFamily: 'Outfit_700Bold',
+  },
+  registerPromptRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
+    marginTop: 18,
+  },
+  registerPromptText: {
+    color: '#9CA3AF',
+    fontSize: 13,
+    fontFamily: 'Inter_400Regular',
+  },
+  registerLinkText: {
+    color: '#ED1D24',
+    fontSize: 13,
+    fontWeight: '700',
+    fontFamily: 'Outfit_700Bold',
+  },
+  skipBtn: {
+    alignItems: 'center',
+    justifyContent: 'center',
+    marginTop: 14,
+    paddingVertical: 6,
+  },
+  skipBtnText: {
+    color: '#9CA3AF',
+    fontSize: 12,
+    fontFamily: 'Inter_500Medium',
   },
   footer: {
     marginTop: 28,

@@ -13,19 +13,23 @@ import api from '../services/api';
 import { useAuth } from '../context/AuthContext';
 
 /**
- * SandboxPaymentModal - Bottom Sheet / Dialog mô phỏng thanh toán Sandbox
+ * SandboxPaymentModal - Dialog mô phỏng thanh toán Sandbox tái sử dụng cho:
+ * 1. Gói hội viên VIP (payment_type: 'subscription')
+ * 2. Mua lẻ trọn bộ truyện bản quyền (payment_type: 'story_purchase')
  * 
  * ĐẶC ĐIỂM:
- * - Không chuyển hướng ra trình duyệt ngoài, không dùng WebView, không thu tiền thật.
- * - Hiển thị rõ nhãn: "Thanh toán thử nghiệm (Sandbox)".
- * - Gọi POST /api/payments/checkout để lấy transactionCode.
+ * - Không chuyển hướng trình duyệt ngoài, không dùng WebView, không trừ tiền thật.
+ * - Hiển thị nhãn môi trường Sandbox rõ ràng.
+ * - Gọi POST /api/payments/checkout lấy transactionCode.
  * - 2 nút lựa chọn: "Thanh toán thành công" và "Hủy / Báo thất bại".
- * - Chặn bấm 2 lần khi đang xử lý (processing state).
- * - Tự động gọi loadUserBenefits() để cập nhật ngay quyền VIP và ổ khóa toàn app mà không cần đăng nhập lại.
+ * - Chặn bấm 2 lần khi đang xử lý (isProcessing).
+ * - Tự động gọi loadUserBenefits() để cập nhật ngay quyền VIP và danh sách truyện đã mua trong AuthContext.
  */
 export default function SandboxPaymentModal({
   visible,
   plan,
+  story,
+  paymentType,
   onClose,
   onSuccess,
 }) {
@@ -37,19 +41,26 @@ export default function SandboxPaymentModal({
   const [errorMessage, setErrorMessage] = useState(null);
   const [successMessage, setSuccessMessage] = useState(null);
 
-  // Khởi tạo checkout khi mở modal với gói đã chọn
+  // Xác định loại giao dịch thực tế
+  const isStoryPurchase = paymentType === 'story_purchase' || (!plan && !!story);
+  const targetItem = isStoryPurchase ? story : plan;
+
+  // Khởi tạo checkout khi mở modal
   useEffect(() => {
     let isMounted = true;
 
-    if (visible && plan) {
+    if (visible && targetItem) {
       setCheckoutData(null);
       setErrorMessage(null);
       setSuccessMessage(null);
       setIsInitializing(true);
 
+      const itemId = isStoryPurchase ? (targetItem.id || targetItem.story_id) : targetItem.id;
+      const type = isStoryPurchase ? 'story_purchase' : 'subscription';
+
       api.post('/api/payments/checkout', {
-        payment_type: 'subscription',
-        item_id: plan.id,
+        payment_type: type,
+        item_id: itemId,
         payment_method: 'sandbox',
       })
         .then((res) => {
@@ -72,7 +83,7 @@ export default function SandboxPaymentModal({
     return () => {
       isMounted = false;
     };
-  }, [visible, plan]);
+  }, [visible, targetItem, isStoryPurchase]);
 
   // Xử lý gửi kết quả mô phỏng Sandbox (thành công hoặc thất bại)
   const handleProcess = async (simulateFailure) => {
@@ -88,7 +99,11 @@ export default function SandboxPaymentModal({
       });
 
       if (res.success && !simulateFailure) {
-        setSuccessMessage('Thanh toán thành công! Gói hội viên của bạn đã được kích hoạt.');
+        const msg = isStoryPurchase
+          ? 'Thanh toán thành công! Bạn đã sở hữu bản quyền trọn bộ truyện này.'
+          : 'Thanh toán thành công! Gói hội viên của bạn đã được kích hoạt.';
+        setSuccessMessage(msg);
+
         // Làm mới quyền VIP và danh sách mua lẻ ngay lập tức trong AuthContext
         await loadUserBenefits();
 
@@ -129,7 +144,11 @@ export default function SandboxPaymentModal({
           <View style={styles.headerRow}>
             <View style={styles.headerTitleGroup}>
               <View style={styles.headerIconWrapper}>
-                <Ionicons name="card-outline" size={20} color="#ED1D24" />
+                <Ionicons
+                  name={isStoryPurchase ? 'cart-outline' : 'card-outline'}
+                  size={20}
+                  color={isStoryPurchase ? '#34D399' : '#ED1D24'}
+                />
               </View>
               <View>
                 <Text style={styles.dialogTitle}>Thanh Toán Thử Nghiệm</Text>
@@ -155,21 +174,29 @@ export default function SandboxPaymentModal({
               <View style={styles.summaryBox}>
                 <View style={styles.summaryTop}>
                   <View style={{ flex: 1 }}>
-                    <Text style={styles.summaryLabel}>GÓI HỘI VIÊN</Text>
-                    <Text style={styles.summaryItemTitle} numberOfLines={1}>
-                      {checkoutData?.itemTitle || plan?.name || 'Gói Độc Giả Marvel'}
+                    <Text style={styles.summaryLabel}>
+                      {isStoryPurchase ? 'BẢN QUYỀN TRỌN BỘ' : 'GÓI HỘI VIÊN VIP'}
                     </Text>
-                    {plan?.duration_days && (
+                    <Text style={styles.summaryItemTitle} numberOfLines={2}>
+                      {checkoutData?.itemTitle || targetItem?.title || targetItem?.name || 'Vật phẩm Marvel'}
+                    </Text>
+
+                    {isStoryPurchase ? (
+                      <View style={styles.durationRow}>
+                        <Ionicons name="infinite-outline" size={13} color="#34D399" style={{ marginRight: 4 }} />
+                        <Text style={[styles.durationText, { color: '#34D399' }]}>Sở hữu vĩnh viễn trọn bộ</Text>
+                      </View>
+                    ) : plan?.duration_days ? (
                       <View style={styles.durationRow}>
                         <Ionicons name="time-outline" size={12} color="#FBBF24" style={{ marginRight: 4 }} />
                         <Text style={styles.durationText}>Thời hạn: {plan.duration_days} ngày</Text>
                       </View>
-                    )}
+                    ) : null}
                   </View>
                   <View style={styles.priceContainer}>
                     <Text style={styles.priceLabel}>Tổng tiền</Text>
-                    <Text style={styles.priceValue}>
-                      {Number(checkoutData?.amount || plan?.price || 0).toLocaleString('vi-VN')} đ
+                    <Text style={[styles.priceValue, isStoryPurchase && { color: '#34D399' }]}>
+                      {Number(checkoutData?.amount || targetItem?.price || 0).toLocaleString('vi-VN')} đ
                     </Text>
                   </View>
                 </View>

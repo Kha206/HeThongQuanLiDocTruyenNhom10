@@ -24,12 +24,18 @@ async function request(endpoint, options = {}) {
 
   const token = await getToken();
 
+  const isFormData = options.isFormData || (typeof FormData !== 'undefined' && options.body instanceof FormData);
+
   const headers = {
-    'Content-Type': 'application/json',
+    ...(isFormData ? {} : { 'Content-Type': 'application/json' }),
     'Accept': 'application/json',
     ...(token ? { 'Authorization': `Bearer ${token}` } : {}),
     ...(options.headers || {})
   };
+
+  if (isFormData && headers['Content-Type']) {
+    delete headers['Content-Type'];
+  }
 
   const config = {
     ...options,
@@ -81,7 +87,9 @@ export const api = {
   post: (endpoint, body, options) => request(endpoint, { ...options, method: 'POST', body: body ? JSON.stringify(body) : undefined }),
   put: (endpoint, body, options) => request(endpoint, { ...options, method: 'PUT', body: body ? JSON.stringify(body) : undefined }),
   patch: (endpoint, body, options) => request(endpoint, { ...options, method: 'PATCH', body: body ? JSON.stringify(body) : undefined }),
-  delete: (endpoint, options) => request(endpoint, { ...options, method: 'DELETE' })
+  delete: (endpoint, options) => request(endpoint, { ...options, method: 'DELETE' }),
+  upload: (endpoint, formData, options) => request(endpoint, { ...options, method: 'POST', body: formData, isFormData: true })
 };
 
 export default api;
+

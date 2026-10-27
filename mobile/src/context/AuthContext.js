@@ -109,6 +109,61 @@ export const AuthProvider = ({ children }) => {
     throw new Error(res.message || 'Đăng nhập không thành công.');
   };
 
+  // Hàm đăng ký
+  const register = async ({ username, email, password, full_name }) => {
+    if (!username || !username.trim()) {
+      throw new Error('Vui lòng nhập tên đăng nhập.');
+    }
+    if (!email || !email.trim()) {
+      throw new Error('Vui lòng nhập địa chỉ email.');
+    }
+    if (!password) {
+      throw new Error('Vui lòng nhập mật khẩu.');
+    }
+    if (password.length < 6) {
+      throw new Error('Mật khẩu phải có độ dài tối thiểu 6 ký tự.');
+    }
+
+    const res = await api.post('/api/auth/register', {
+      username: username.trim(),
+      email: email.trim(),
+      password,
+      full_name: full_name ? full_name.trim() : undefined
+    });
+
+    if (res.success && res.token) {
+      await saveToken(res.token);
+      setToken(res.token);
+      setUser(res.user);
+      await loadUserBenefits();
+      return res.user;
+    }
+
+    throw new Error(res.message || 'Đăng ký không thành công.');
+  };
+
+  // Cập nhật thông tin user ngay lập tức trong state
+  const updateUser = useCallback((updatedFieldsOrUser) => {
+    setUser((prev) => {
+      if (!prev) return updatedFieldsOrUser;
+      return { ...prev, ...updatedFieldsOrUser };
+    });
+  }, []);
+
+  // Làm mới thông tin user từ /api/auth/me
+  const refreshUser = useCallback(async () => {
+    try {
+      const res = await api.get('/api/auth/me');
+      if (res.success && res.user) {
+        setUser(res.user);
+        return res.user;
+      }
+    } catch (err) {
+      console.warn('Lỗi khi làm mới thông tin user:', err.message);
+    }
+    return null;
+  }, []);
+
   /**
    * Kiểm tra quyền đọc của một chương truyện
    * Logic giống Web:
@@ -158,6 +213,9 @@ export const AuthProvider = ({ children }) => {
         mySubscription,
         purchasedStories,
         login,
+        register,
+        updateUser,
+        refreshUser,
         logout,
         loadUserBenefits,
         canAccessChapter
@@ -166,6 +224,7 @@ export const AuthProvider = ({ children }) => {
       {children}
     </AuthContext.Provider>
   );
+
 };
 
 export const useAuth = () => {

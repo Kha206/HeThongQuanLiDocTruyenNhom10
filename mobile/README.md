@@ -55,10 +55,12 @@ Mỗi thư viện cài đặt đều phục vụ đúng yêu cầu kỹ thuật,
 | `@react-navigation/native` | `^7.5.1` | Thư viện điều hướng chuẩn cho React Native. |
 | `@react-navigation/native-stack`| `^7.21.0` | Quản lý ngăn xếp màn hình (Login, Home -> StoryDetail -> ComingSoon). |
 | `@react-navigation/bottom-tabs` | `^7.21.0` | Thanh điều hướng tab dưới cùng (Kho Truyện và Tài Khoản). |
+| `expo-image-picker` | `~58.0.10` | Cho phép người dùng chọn ảnh đại diện từ thư viện ảnh thiết bị (Android/iOS) hoặc chụp mới, hỗ trợ crop 1:1 và nén chất lượng an toàn. |
 | `react-native-screens` | `~4.30.0` | Tối ưu hóa bộ nhớ native cho các màn hình điều hướng của React Navigation. |
 | `react-native-safe-area-context`| `~5.10.1` | Xử lý vùng an toàn (tai thỏ, notch, thanh điều hướng dưới) trên Android/iOS. |
 
 ---
+
 
 ## 3. CÁC API ĐÃ KIỂM CHỨNG THỰC TẾ
 
@@ -288,6 +290,190 @@ Tất cả các API dưới đây đã được gọi thử nghiệm trực ti�
   - **Trạng thái HTTP:** `200 OK`
   - **Kiểm chứng:** Kích hoạt gói VIP qua Sequelize transaction, cộng dồn ngày sử dụng.
 
+### 3.12. `POST /api/payments/checkout` (Loại mua truyện lẻ bản quyền: `story_purchase`)
+- **Mục đích:** Khởi tạo phiên thanh toán mua đứt bản quyền trọn bộ truyện tranh.
+- **Header:** `Authorization: Bearer <token>`
+- **Body:** `{ "payment_type": "story_purchase", "item_id": 1, "payment_method": "sandbox" }`
+- **Trạng thái HTTP:** `201 Created`
+- **Response Fields:**
+  - `success`: boolean (`true`)
+  - `message`: string (`"Tạo phiên thanh toán thành công."`)
+  - `data`: object
+    - `transactionCode`: string (ví dụ: `"SANDBOX_1792672351293_1699"`)
+    - `amount`: string (ví dụ: `"49000.00"`)
+    - `itemTitle`: string (`"The Amazing Spider-Man"`)
+    - `paymentType`: string (`"story_purchase"`)
+    - `paymentMethod`: string (`"sandbox"`)
+- **Kiểm tra chống mua trùng:** Nếu người dùng đã sở hữu bản quyền bộ truyện trước đó, backend trả về HTTP 400 kèm message: `"Bạn đã sở hữu bản quyền bộ truyện này rồi, không cần mua lại!"`.
+- **Kiểm tra tài khoản hạn chế:** Nếu tài khoản có `status: 'restricted'`, backend chặn với HTTP 400: `"Tài khoản của bạn đang bị giới hạn, không thể thực hiện giao dịch thanh toán hoặc mua nội dung."`.
+
+### 3.13. `GET /api/stories/:id/follow-status` & `POST /api/stories/:id/follow`
+- **Mục đích:** Kiểm tra và Bật/Tắt trạng thái theo dõi (yêu thích) bộ truyện tranh Marvel.
+- **Lấy trạng thái (`GET /api/stories/:id/follow-status`):**
+  - Header: `Authorization: Bearer <token>` (tùy chọn)
+  - Trạng thái HTTP: `200 OK`
+  - Response:
+    ```json
+    {
+      "success": true,
+      "is_following": false,
+      "followers_count": 0
+    }
+    ```
+- **Bật/Tắt theo dõi (`POST /api/stories/:id/follow`):**
+  - Header: `Authorization: Bearer <token>` (bắt buộc)
+  - Trạng thái HTTP: `200 OK`
+  - Response khi BẬT theo dõi:
+    ```json
+    {
+      "success": true,
+      "is_following": true,
+      "followers_count": 1,
+      "message": "Đã thêm truyện vào danh sách theo dõi."
+    }
+    ```
+  - Response khi HỦY theo dõi:
+    ```json
+    {
+      "success": true,
+      "is_following": false,
+      "followers_count": 0,
+      "message": "Đã hủy theo dõi truyện."
+    }
+    ```
+
+### 3.14. `GET /api/chapters/:chapterId/comments`
+- **Mục đích:** Lấy danh sách bình luận đã duyệt của chương truyện.
+- **Trạng thái HTTP:** `200 OK`
+- **Lưu ý:** Backend đã tự động lọc `status: 'approved'` trong câu truy vấn, các bình luận bị ẩn (`hidden`) không bao giờ được trả về.
+- **Response Fields:**
+  - `success`: boolean (`true`)
+  - `comments`: array of:
+    - `id`: number
+    - `user_id`: number
+    - `story_id`: number
+    - `chapter_id`: number
+    - `content`: string
+    - `status`: string (`"approved"`)
+    - `likes_count`: number (mặc định 0)
+    - `createdAt`: ISO Date string
+    - `user`: object
+      - `id`: number
+      - `username`: string
+      - `full_name`: string
+      - `avatar`: string hoặc null
+      - `role`: string (`"reader"` | `"admin"`)
+
+### 3.15. `POST /api/chapters/:chapterId/comments`
+- **Mục đích:** Đăng bình luận mới cho chương truyện.
+- **Header:** `Authorization: Bearer <token>`
+- **Body:** `{ "content": "Nội dung bình luận..." }`
+- **Kiểm tra hợp lệ:**
+  - Nội dung rỗng: HTTP 400 `"Nội dung bình luận không được để trống."`
+  - Vượt quá 1000 ký tự: HTTP 400 `"Bình luận không được vượt quá 1000 ký tự."`
+  - Tài khoản bị hạn chế (`restricted`): HTTP 403 `"Tài khoản của bạn đang bị giới hạn, không thể gửi bình luận."`
+- **Trạng thái HTTP thành công:** `201 Created`
+- **Response:**
+  ```json
+  {
+    "success": true,
+    "message": "Bình luận thành công!",
+    "comment": { ... }
+  }
+  ```
+
+### 3.16. `POST /api/comments/:id/like` & `POST /api/comments/:id/report`
+- **Thích bình luận (`POST /api/comments/:id/like`):**
+  - Trạng thái HTTP: `200 OK`
+  - Response: `{ "success": true, "likes_count": 1 }`
+- **Báo cáo vi phạm (`POST /api/comments/:id/report`):**
+  - Header: `Authorization: Bearer <token>`
+  - Body: `{ "reason": "Nội dung spam hoặc phản cảm" }`
+  - Trạng thái HTTP: `200 OK`
+  - Response: `{ "success": true, "message": "Đã gửi báo cáo vi phạm tới ban quản trị để xem xét." }`
+
+### 3.17. `POST /api/auth/register` (Đăng ký tài khoản độc giả mới)
+- **Mục đích:** Tạo tài khoản độc giả mới, nhận ngay Bearer token và đăng nhập tự động.
+- **Body JSON gửi lên:**
+  ```json
+  {
+    "username": "ironspider_99",
+    "email": "ironspider_99@marvel.test",
+    "password": "Password123",
+    "full_name": "Peter Benjamin Parker"
+  }
+  ```
+- **Kiểm tra hợp lệ phía Backend:**
+  - Thiếu username, email hoặc password: HTTP 400 `"Vui lòng cung cấp username, email và password."`
+  - Mật khẩu < 6 ký tự: HTTP 400 `"Mật khẩu phải có độ dài tối thiểu 6 ký tự."`
+  - Trùng email: HTTP 409 `"Email đã được đăng ký."`
+  - Trùng username: HTTP 409 `"Username đã được sử dụng."`
+- **Trạng thái HTTP thành công:** `201 Created`
+- **Response Fields thực tế:**
+  - `success`: boolean (`true`)
+  - `message`: string (`"Đăng ký tài khoản thành công!"`)
+  - `token`: string (JWT string, app tự động lưu an toàn vào `SecureStore`)
+  - `user`: object
+    - `id`: number
+    - `username`: string
+    - `email`: string
+    - `full_name`: string
+    - `role`: string (`"reader"`)
+    - `avatar`: null
+    - `status`: string (`"active"`)
+    - `createdAt`: ISO Date string
+    - `updatedAt`: ISO Date string
+
+### 3.18. `PUT /api/auth/profile` (Cập nhật họ tên hiển thị)
+- **Mục đích:** Đổi tên hiển thị (`full_name`) của người dùng hiện tại.
+- **Header:** `Authorization: Bearer <token>`
+- **Body JSON gửi lên:**
+  ```json
+  {
+    "full_name": "Tony Edward Stark"
+  }
+  ```
+- **Trạng thái HTTP:** `200 OK`
+- **Response Fields thực tế:**
+  - `success`: boolean (`true`)
+  - `message`: string (`"Cập nhật hồ sơ cá nhân thành công!"`)
+  - `user`: object (`id`, `username`, `email`, `full_name`, `role`, `status`, `avatar`, `updatedAt`, ...)
+
+### 3.19. `POST /api/auth/avatar` (Tải ảnh đại diện qua Multipart FormData)
+- **Mục đích:** Cập nhật ảnh đại diện người dùng từ thư viện thiết bị máy ảo/thật.
+- **Header:**
+  - `Authorization: Bearer <token>`
+  - `Content-Type`: `multipart/form-data; boundary=...` (fetch tự động sinh boundary)
+- **Body FormData:** Field `avatar` chứa tệp tin ảnh `{ uri, name, type }` (JPEG, PNG, WEBP, tối đa 2MB).
+- **Trạng thái HTTP:** `200 OK`
+- **Response Fields thực tế:**
+  - `success`: boolean (`true`)
+  - `message`: string (`"Cập nhật ảnh đại diện thành công!"`)
+  - `avatar`: string (đường dẫn tương đối, ví dụ: `"/uploads/avatars/avatar_268_1792832876645_211283849.png"`)
+  - `avatarUrl`: string (giá trị tương tự `avatar`)
+  - `user`: object đầy đủ đã cập nhật trường `avatar`
+
+### 3.20. `POST /api/auth/change-password` (Đổi mật khẩu tài khoản)
+- **Mục đích:** Đổi mật khẩu cho người dùng đã đăng nhập với xác thực mật khẩu cũ.
+- **Header:** `Authorization: Bearer <token>`
+- **Body JSON gửi lên:**
+  ```json
+  {
+    "oldPassword": "CurrentPassword123",
+    "newPassword": "NewStrongPassword456",
+    "confirmPassword": "NewStrongPassword456"
+  }
+  ```
+- **Kiểm tra hợp lệ phía Backend:**
+  - Thiếu oldPassword hoặc newPassword: HTTP 400 `"Vui lòng cung cấp mật khẩu cũ và mật khẩu mới."`
+  - Mật khẩu mới < 8 ký tự: HTTP 400 `"Mật khẩu mới phải có độ dài tối thiểu 8 ký tự."`
+  - Mật khẩu xác nhận không khớp: HTTP 400 `"Xác nhận mật khẩu mới không khớp."`
+  - Mật khẩu cũ sai: HTTP 400 `"Mật khẩu cũ không chính xác."`
+- **Trạng thái HTTP thành công:** `200 OK`
+- **Response Fields thực tế:**
+  - `success`: boolean (`true`)
+  - `message`: string (`"Đổi mật khẩu thành công!"`)
+
 ---
 
 ## 4. ĐIỂM KHÁC BIỆT THỰC TẾ SO VỚI TÀI LIỆU CŨ VÀ CÁCH XỬ LÝ TRONG APP
@@ -301,8 +487,18 @@ Tất cả các API dưới đây đã được gọi thử nghiệm trực ti�
    - Phản hồi thực tế chứa trực tiếp `plan_name`, `badge`, `days_remaining`, `is_active` ngay trong object `subscription`, app lấy trực tiếp các field này để hiển thị hạn dùng gói VIP.
 4. **Mã phản hồi kiểm tra quyền đọc chương (`checkReadAccess`):**
    - Khi chưa có quyền đọc: backend trả về HTTP 403 kèm `code: 'PAYMENT_REQUIRED'` và object `access_info` (chứa `story_title`, `chapter_number`, `story_price`). App xử lý mở `AccessBlockedSheet` thân thiện bằng tiếng Việt, tuyệt đối không lộ chuỗi mã kỹ thuật lên UI.
+5. **Lọc bình luận vi phạm phía Backend:**
+   - Route `GET /api/chapters/:chapterId/comments` đã lọc cứng `status: 'approved'`. Bình luận bị admin ẩn (`hidden`) sẽ tự động không hiển thị, app không cần lọc thủ công.
+6. **Không phân trang bình luận phía Backend:**
+   - Backend trả về toàn bộ mảng `comments`. App xử lý phân trang 10 bình luận đầu tiên kèm nút "Xem thêm bình luận" để tối ưu hiệu năng hiển thị.
+7. **Giới hạn dung lượng ảnh đại diện (Avatar Size Limit):**
+   - Tài liệu `docs/API.md` ghi tối đa 5MB. Tuy nhiên, code thực tế backend tại `backend/src/middlewares/uploadMiddleware.js` (dòng 72) cấu hình `limits: { fileSize: 2 * 1024 * 1024 }` (2MB) và Web frontend (`frontend/src/pages/Reader/ProfilePage.jsx` dòng 70) kiểm tra nghiêm ngặt `file.size > 2 * 1024 * 1024` với thông báo "Kích thước ảnh đại diện không được vượt quá 2MB.".
+   - Mobile app tuân thủ chặt chẽ theo backend thực tế và Web: kiểm tra dung lượng không vượt quá 2MB trước khi gửi, đồng thời nén ảnh (`quality: 0.8`) qua `expo-image-picker` để đảm bảo tệp tải lên mượt mà và không bao giờ gặp lỗi `MulterError: File too large`.
+8. **Đường dẫn ảnh đại diện trả về dạng tương đối (`/uploads/avatars/...`):**
+   - Backend trả về đường dẫn tương đối `/uploads/avatars/...`. App mobile tự động ghép với Base URL thông qua tiện ích `getProxiedImageUrl` (`${API_BASE_URL}/uploads/...`) và component `UserAvatar` để ảnh hiển thị chuẩn xác ở mọi màn hình (Header, Tab Tài Khoản, Thảo luận chương, Chỉnh sửa hồ sơ).
 
 ---
+
 
 ## 5. LOGIC TÍNH TOÁN BIỂU TƯỢNG KHÓA / MỞ KHÓA CHƯƠNG (PHÍA MOBILE)
 
@@ -314,4 +510,151 @@ Chương truyện được xác định là **MỞ KHÓA** khi thỏa mãn một
    - HOẶC có gói VIP còn hạn: `isVip === true` hoặc `mySubscription.is_active === true`
    - HOẶC đã mua riêng trọn bộ truyện: `purchasedStories.some(p => Number(p.story_id) === Number(story.id))`
 4. Tất cả các trường hợp còn lại: biểu tượng **KHÓA (VIP)** màu hổ phách.
+
+---
+
+## 6. HƯỚNG DẪN KIỂM THỬ THỰC TẾ TRÊN ANDROID EMULATOR
+
+### 6.1. Khởi động môi trường
+1. Đảm bảo MySQL đang chạy tại cổng `3306` và backend chạy tại cổng `5000` (`http://localhost:5000` trên máy tính host).
+2. Khởi động ứng dụng Expo trên Android Emulator:
+   ```bash
+   cd mobile
+   npx expo start --android
+   ```
+
+### 6.2. Kiểm thử Tính năng 1: Mua truyện lẻ (Story purchase)
+1. **Kiểm tra trên trang chi tiết truyện (`StoryDetailScreen`):**
+   - Mở bộ truyện có tính phí hoặc hỗn hợp (ví dụ: The Amazing Spider-Man).
+   - Thấy nút **"Mua Trọn Bộ ([Giá] đ)"** màu xanh ngọc.
+   - Bấm nút: dialog Sandbox hiện lên với tiêu đề "BẢN QUYỀN TRỌN BỘ", thời hạn "Sở hữu vĩnh viễn trọn bộ".
+   - Bấm **"Hủy / Báo Thất Bại"**: giao dịch bị từ chối, thông báo lỗi tiếng Việt hiển thị, quyền đọc không được cấp.
+   - Bấm **"Thanh Toán Thành Công"**: sau khi kích hoạt thành công, danh sách truyện đã mua trong `AuthContext` tự động được làm mới mà không cần đăng nhập lại.
+   - Nút "Mua Trọn Bộ" biến mất, thay bằng huy hiệu **"ĐÃ SỞ HỮU BẢN QUYỀN TRỌN BỘ"** kèm dấu tích xanh. Toàn bộ các ổ khóa chương chuyển sang trạng thái mở khóa.
+   - Chuyển sang Tab "Tài Khoản": danh sách "Truyện Đã Mua Lẻ" hiển thị bộ truyện vừa mua.
+2. **Kiểm tra tại Bottom Sheet chặn quyền đọc (`AccessBlockedSheet`):**
+   - Đăng nhập tài khoản chưa sở hữu truyện và chưa có VIP (hoặc tài khoản độc giả mới).
+   - Bấm vào chương trả phí (ví dụ Chương 3).
+   - Bottom sheet hiện lên với thông tin truyện, giá trọn bộ và 2 nút: "Đăng Ký Gói Hội Viên VIP" và "Mua Riêng Trọn Bộ".
+   - Bấm "Mua Riêng Trọn Bộ": mở dialog Sandbox ngay tại chỗ. Sau khi bấm thanh toán thành công, sheet tự đóng và nội dung chương truyện mở khóa ngay lập tức.
+
+### 6.3. Kiểm thử Tính năng 2: Theo dõi / yêu thích truyện
+1. Tại `StoryDetailScreen`, quan sát nút **"Theo Dõi"** kèm số lượng người theo dõi hiện tại.
+2. Nếu chưa đăng nhập: bấm vào nút sẽ tự động chuyển sang màn hình Đăng Nhập.
+3. Nếu đã đăng nhập:
+   - Bấm nút: trạng thái chuyển ngay sang **"Đang Theo Dõi"** (màu hồng rose, icon tim đỏ đặc) và số đếm tăng lên 1.
+   - Bấm lần nữa: hủy theo dõi, trạng thái trở về bình thường và số đếm giảm 1.
+4. Thoát khỏi màn hình chi tiết rồi vào lại: trạng thái theo dõi được gọi lại từ API qua `useFocusEffect`, đảm bảo đồng bộ với Web mà không bị cache cứng.
+
+### 6.4. Kiểm thử Tính năng 3: Thảo luận theo chương
+1. Mở bất kỳ chương truyện nào (ví dụ: The Amazing Spider-Man Chapter 1).
+2. Cuộn xuống dưới cùng, qua phần nhân vật và điều hướng chương, sẽ thấy khu vực **"Thảo Luận Chương"**.
+3. **Khi chưa đăng nhập:**
+   - Hiển thị hộp thông báo "Đăng nhập để tham gia thảo luận cùng cộng đồng độc giả Marvel" và nút "Đăng Nhập Ngay".
+4. **Khi đã đăng nhập:**
+   - Hiển thị avatar người dùng (ảnh hoặc chữ cái đầu), nhãn "Bình luận với tư cách: [Tên bạn]".
+   - Ô nhập văn bản hỗ trợ nhiều dòng, bộ đếm `0/1000 ký tự`.
+   - Bấm "Gửi Bình Luận" khi ô trống: cảnh báo không được để trống.
+   - Nhập nội dung và gửi: bình luận lập tức xuất hiện đầu danh sách với avatar, tên, nhãn VIP/Admin và thời gian thực tế.
+5. **Thao tác trên từng bình luận:**
+   - Bấm icon Tim: tăng số lượt thích ngay lập tức và gọi `POST /api/comments/:id/like`.
+   - Bấm icon Cờ (Báo cáo): mở hộp thoại chọn lý do vi phạm (phản cảm, spam, xúc phạm, spoiler, lý do khác). Bấm "Gửi Báo Cáo" -> hiển thị thông báo gửi thành công tới ban quản trị.
+6. **Phân trang Client:**
+   - Nếu chương có trên 10 bình luận: chỉ hiển thị 10 bình luận đầu tiên cùng nút "Xem thêm bình luận ([X] bình luận khác)". Bấm nút sẽ nạp thêm 10 bình luận tiếp theo.
+
+### 6.5. Cách tạo tài khoản độc giả mới để thử nghiệm mua truyện thành công an toàn
+Để kiểm thử nhánh thanh toán thành công (`process-sandbox` với `simulate_failure: false`) mà tuyệt đối không làm ảnh hưởng đến các tài khoản test có sẵn, bạn có thể tạo nhanh một tài khoản độc giả mới thông qua Node.js:
+```bash
+node -e "
+const { User } = require('../backend/src/models');
+const bcrypt = require('../backend/node_modules/bcryptjs');
+(async () => {
+  const hash = await bcrypt.hash('Reader123@', 10);
+  const u = await User.create({
+    username: 'reader_test_' + Date.now().toString().slice(-4),
+    email: 'reader_' + Date.now() + '@marvel.test',
+    password: hash,
+    full_name: 'Độc Giả Thử Nghiệm',
+    role: 'reader',
+    status: 'active'
+  });
+  console.log('Tài khoản mới tạo thành công:');
+  console.log('Username:', u.username);
+  console.log('Password: Reader123@');
+  process.exit(0);
+})();
+"
+```
+Đăng nhập tài khoản này trên ứng dụng Mobile, tiến hành mua truyện lẻ The Amazing Spider-Man với nút "Thanh Toán Thành Công", sau đó xác nhận truyện mở khóa vĩnh viễn.
+
+### 6.6. Kiểm thử Tính năng Đăng Ký Tài Khoản & Chỉnh Sửa Hồ Sơ
+
+#### A. Kiểm thử Đăng Ký Tài Khoản (`RegisterScreen`):
+1. **Truy cập từ màn hình Đăng Nhập:**
+   - Mở app hoặc vào tab "Tài Khoản" -> Bấm "Đăng Nhập Ngay" (hoặc đăng xuất nếu đang đăng nhập).
+   - Quan sát dòng liên kết mới dưới nút Đăng Nhập: **"Chưa có tài khoản? Đăng ký ngay"**.
+   - Bấm vào "Đăng ký ngay" -> Màn hình đăng ký trượt vào mượt mà.
+2. **Kiểm tra Validation hợp lệ phía Client:**
+   - Để trống và bấm "ĐĂNG KÝ TÀI KHOẢN": Cảnh báo đỏ xuất hiện tại từng ô.
+   - Nhập tên đăng nhập có dấu cách hoặc ký tự đặc biệt: Báo lỗi "Tên đăng nhập chỉ gồm chữ cái, số và dấu gạch dưới (_)."
+   - Nhập email sai định dạng (ví dụ `test`): Báo lỗi "Định dạng email không hợp lệ."
+   - Nhập mật khẩu < 6 ký tự: Báo lỗi "Mật khẩu phải có độ dài tối thiểu 6 ký tự."
+   - Nhập xác nhận mật khẩu không khớp: Báo lỗi "Xác nhận mật khẩu không khớp với mật khẩu đã nhập."
+   - Thử nghiệm nút con mắt (Show/Hide password): Mỗi ô mật khẩu có thể bật/tắt hiển thị hoàn toàn độc lập.
+3. **Kiểm tra xử lý phản hồi từ Backend:**
+   - Thử đăng ký với username đã tồn tại (ví dụ `admin`): Backend trả về 409 -> App hiển thị lỗi tiếng Việt "Tên đăng nhập này đã có người sử dụng. Vui lòng chọn tên khác."
+   - Thử đăng ký với email đã tồn tại (ví dụ `admin@marvel.test`): Backend trả về 409 -> App hiển thị lỗi tiếng Việt "Địa chỉ email này đã được đăng ký. Vui lòng sử dụng email khác."
+4. **Đăng ký thành công & Tự động đăng nhập:**
+   - Nhập thông tin mới:
+     - Họ và tên: `Người Nhện Peter`
+     - Tên đăng nhập: `spider_test_xxxx` (chọn hậu tố ngẫu nhiên)
+     - Email: `spider_test_xxxx@marvel.test`
+     - Mật khẩu: `SpiderPass123`
+     - Xác nhận: `SpiderPass123`
+   - Bấm "ĐĂNG KÝ TÀI KHOẢN": Nút hiển thị spinner tải, chặn bấm hai lần.
+   - Sau khi backend trả về token (HTTP 201), app tự động lưu token vào `SecureStore`, cập nhật `AuthContext` và vào thẳng màn hình chính `Main` mà không cần đăng nhập lại.
+
+#### B. Kiểm thử Chỉnh Sửa Hồ Sơ Cá Nhân (`ProfileEditScreen`):
+1. **Truy cập màn hình chỉnh sửa:**
+   - Vào tab "Tài Khoản" -> Quan sát trong thẻ tài khoản có mục **"Chỉnh Sửa Hồ Sơ"** kèm icon cây bút.
+   - Bấm vào mục này -> Chuyển sang màn hình `ProfileEditScreen`.
+2. **Phần 1: Cập nhật Họ và Tên:**
+   - Nhập họ tên mới vào ô "Họ và Tên (Tên Hiển Thị)" (ví dụ: `Peter Parker (Spider-Man)`).
+   - Tên đăng nhập và Email bị khóa (readonly) với nhãn "Không thể thay đổi" đúng như Web.
+   - Bấm **"Lưu Thay Đổi Họ Tên"** -> Gọi `PUT /api/auth/profile`.
+   - Banner xanh hiển thị: "Cập nhật họ và tên thành công!".
+   - Quay lại tab "Tài Khoản" -> Tên hiển thị mới được cập nhật ngay lập tức mà không cần tải lại trang.
+3. **Phần 2: Cập nhật Ảnh Đại Diện (Avatar):**
+   - Bấm nút Camera trên avatar hoặc nút **"Chọn Ảnh Từ Thư Viện"**.
+   - Hộp thoại xin quyền truy cập thư viện ảnh của thiết bị xuất hiện.
+   - Chọn ảnh mong muốn (JPG, PNG, WEBP).
+   - Ảnh được crop tỉ lệ 1:1 và nén tối ưu.
+   - App kiểm tra dung lượng (tối đa 2MB) trước khi gửi qua `POST /api/auth/avatar` (multipart/form-data field `avatar`).
+   - Cập nhật thành công: Ảnh đại diện mới lập tức hiển thị trên `ProfileEditScreen`, đồng thời phản ánh đồng bộ ngay trên Tab Tài Khoản và khu vực bình luận.
+4. **Phần 3: Đổi Mật Khẩu:**
+   - Kiểm tra 3 ô mật khẩu: Mật khẩu hiện tại, Mật khẩu mới, Xác nhận mật khẩu mới. Mỗi ô có nút con mắt hiển thị/ẩn độc lập.
+   - Thử nhập mật khẩu cũ sai: Báo lỗi tiếng Việt "Mật khẩu cũ không chính xác. Vui lòng kiểm tra lại."
+   - Thử nhập mật khẩu mới < 8 ký tự: Báo lỗi "Mật khẩu mới phải có độ dài tối thiểu 8 ký tự."
+   - Thử nhập xác nhận không khớp: Báo lỗi "Xác nhận mật khẩu mới không khớp."
+   - Nhập đúng mật khẩu cũ và mật khẩu mới >= 8 ký tự -> Bấm **"Cập Nhật Mật Khẩu"** -> Báo thành công "Đổi mật khẩu thành công!", 3 ô mật khẩu tự động xóa trắng.
+
+---
+
+### 6.7. Hướng dẫn chuẩn bị ảnh trong máy ảo Android Emulator
+
+Để kiểm thử tính năng chọn và tải ảnh đại diện bằng `expo-image-picker` trong Android Studio Emulator, bạn có thể đưa ảnh vào máy ảo theo một trong 3 cách cực kỳ đơn giản sau:
+
+- **Cách 1 (Nhanh nhất - Kéo thả ảnh):**
+  1. Chuẩn bị 1 tệp ảnh `.jpg` hoặc `.png` bất kỳ trên máy tính của bạn.
+  2. Kéo (drag) tệp ảnh đó từ File Explorer của Windows và thả (drop) trực tiếp vào màn hình cửa sổ Android Emulator.
+  3. Máy ảo Android sẽ tự động lưu tệp vào thư mục `Downloads` / `Pictures` và quét vào thư viện ảnh hệ thống (Google Photos / Gallery).
+- **Cách 2 (Sử dụng ứng dụng Camera trong máy ảo):**
+  1. Trong máy ảo Android, mở ứng dụng **Camera**.
+  2. Android Emulator đã tích hợp sẵn khung cảnh mô phỏng 3D di chuyển được. Bấm nút chụp ảnh màu trắng để chụp 1 bức ảnh mẫu.
+  3. Bức ảnh chụp sẽ ngay lập tức có mặt trong thư viện để `expo-image-picker` mở lên chọn.
+- **Cách 3 (Tải từ Chrome trên máy ảo):**
+  1. Mở trình duyệt Chrome trong Android Emulator.
+  2. Tìm kiếm một hình ảnh bất kỳ (ví dụ: Marvel Avatar).
+  3. Nhấn giữ vào ảnh -> Chọn **Download image**. Ảnh sẽ được lưu vào thư viện của máy ảo.
+
 
