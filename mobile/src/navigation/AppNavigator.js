@@ -1,21 +1,23 @@
 import React from 'react';
 import { View, ActivityIndicator, StyleSheet, Text } from 'react-native';
-import { NavigationContainer } from '@react-navigation/native';
+import { NavigationContainer, useNavigationContainerRef } from '@react-navigation/native';
 import { createNativeStackNavigator } from '@react-navigation/native-stack';
 import { createBottomTabNavigator } from '@react-navigation/bottom-tabs';
 import { Ionicons } from '@expo/vector-icons';
 import { useAuth } from '../context/AuthContext';
+import { useNotifications } from '../context/NotificationContext';
 
 import LoginScreen from '../screens/LoginScreen';
 import RegisterScreen from '../screens/RegisterScreen';
 import ProfileEditScreen from '../screens/ProfileEditScreen';
 import HomeScreen from '../screens/HomeScreen';
+import NotificationsScreen from '../screens/NotificationsScreen';
 import StoryDetailScreen from '../screens/StoryDetailScreen';
 import ChapterReaderScreen from '../screens/ChapterReaderScreen';
 import SubscriptionsScreen from '../screens/SubscriptionsScreen';
 import AccountScreen from '../screens/AccountScreen';
 import ComingSoonScreen from '../screens/ComingSoonScreen';
-
+import InAppNotificationBanner from '../components/InAppNotificationBanner';
 
 const Stack = createNativeStackNavigator();
 const Tab = createBottomTabNavigator();
@@ -39,6 +41,8 @@ function HomeStackNavigator() {
 }
 
 function MainTabNavigator() {
+  const { unreadCount } = useNotifications();
+
   return (
     <Tab.Navigator
       screenOptions={({ route }) => ({
@@ -62,6 +66,8 @@ function MainTabNavigator() {
 
           if (route.name === 'HomeTab') {
             iconName = focused ? 'book' : 'book-outline';
+          } else if (route.name === 'NotificationTab') {
+            iconName = focused ? 'notifications' : 'notifications-outline';
           } else if (route.name === 'AccountTab') {
             iconName = focused ? 'person' : 'person-outline';
           }
@@ -76,6 +82,24 @@ function MainTabNavigator() {
         options={{ tabBarLabel: 'Kho Truyện' }}
       />
       <Tab.Screen
+        name="NotificationTab"
+        component={NotificationsScreen}
+        options={{
+          tabBarLabel: 'Thông Báo',
+          tabBarBadge: unreadCount > 0 ? (unreadCount > 99 ? '99+' : unreadCount) : undefined,
+          tabBarBadgeStyle: {
+            backgroundColor: '#ED1D24',
+            color: '#FFFFFF',
+            fontSize: 10,
+            fontFamily: 'Outfit_700Bold',
+            minWidth: 16,
+            height: 16,
+            borderRadius: 8,
+            lineHeight: 16
+          }
+        }}
+      />
+      <Tab.Screen
         name="AccountTab"
         component={AccountScreen}
         options={{ tabBarLabel: 'Tài Khoản' }}
@@ -86,6 +110,7 @@ function MainTabNavigator() {
 
 export default function AppNavigator() {
   const { isAuthenticated, isLoading } = useAuth();
+  const navigationRef = useNavigationContainerRef();
 
   if (isLoading) {
     return (
@@ -100,7 +125,8 @@ export default function AppNavigator() {
   }
 
   return (
-    <NavigationContainer>
+    <NavigationContainer ref={navigationRef}>
+      <InAppNotificationBanner navigationRef={navigationRef} />
       <Stack.Navigator
         initialRouteName={isAuthenticated ? 'Main' : 'Login'}
         screenOptions={{
@@ -109,6 +135,7 @@ export default function AppNavigator() {
         }}
       >
         <Stack.Screen name="Main" component={MainTabNavigator} />
+        <Stack.Screen name="Notifications" component={NotificationsScreen} />
         <Stack.Screen name="ChapterReader" component={ChapterReaderScreen} />
         <Stack.Screen name="Subscriptions" component={SubscriptionsScreen} />
         <Stack.Screen name="ComingSoon" component={ComingSoonScreen} />
@@ -134,7 +161,6 @@ export default function AppNavigator() {
           }}
         />
       </Stack.Navigator>
-
     </NavigationContainer>
   );
 }

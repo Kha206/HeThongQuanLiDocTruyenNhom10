@@ -21,6 +21,7 @@ import {
 } from '@expo-google-fonts/merriweather';
 
 import { AuthProvider } from './src/context/AuthContext';
+import { NotificationProvider } from './src/context/NotificationContext';
 import AppNavigator from './src/navigation/AppNavigator';
 
 export default function App() {
@@ -53,7 +54,9 @@ export default function App() {
     <SafeAreaProvider>
       <StatusBar style="light" backgroundColor="#0F0F14" />
       <AuthProvider>
-        <AppNavigator />
+        <NotificationProvider>
+          <AppNavigator />
+        </NotificationProvider>
       </AuthProvider>
     </SafeAreaProvider>
   );

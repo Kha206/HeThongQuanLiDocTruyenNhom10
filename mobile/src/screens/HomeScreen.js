@@ -14,10 +14,15 @@ import {
 import { Ionicons } from '@expo/vector-icons';
 import api from '../services/api';
 import ComicCard from '../components/ComicCard';
+import { useAuth } from '../context/AuthContext';
+import { useNotifications } from '../context/NotificationContext';
 
 const PAGE_LIMIT = 6;
 
 export default function HomeScreen({ navigation }) {
+  const { isAuthenticated } = useAuth();
+  const { unreadCount } = useNotifications();
+
   const [stories, setStories] = useState([]);
   const [page, setPage] = useState(1);
   const [totalPages, setTotalPages] = useState(1);
@@ -123,8 +128,28 @@ export default function HomeScreen({ navigation }) {
           </View>
           <Text style={styles.brandTitle}>COMICS HUB</Text>
         </View>
-        <View style={styles.countBadge}>
-          <Text style={styles.countBadgeText}>{totalStories} truyện</Text>
+        <View style={styles.headerRightActions}>
+          <View style={styles.countBadge}>
+            <Text style={styles.countBadgeText}>{totalStories} truyện</Text>
+          </View>
+          <TouchableOpacity
+            style={styles.bellButton}
+            onPress={() => {
+              if (isAuthenticated) {
+                navigation.navigate('NotificationTab');
+              } else {
+                navigation.navigate('Login');
+              }
+            }}
+            activeOpacity={0.7}
+          >
+            <Ionicons name="notifications-outline" size={20} color="#D1D5DB" />
+            {unreadCount > 0 && (
+              <View style={styles.bellBadge}>
+                <Text style={styles.bellBadgeText}>{unreadCount > 9 ? '9+' : unreadCount}</Text>
+              </View>
+            )}
+          </TouchableOpacity>
         </View>
       </View>
 
@@ -297,6 +322,40 @@ const styles = StyleSheet.create({
     fontSize: 20,
     fontFamily: 'Italiana_400Regular',
     letterSpacing: 2,
+  },
+  headerRightActions: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 8,
+  },
+  bellButton: {
+    width: 36,
+    height: 36,
+    borderRadius: 18,
+    backgroundColor: '#1A1A22',
+    borderWidth: 1,
+    borderColor: '#2A2A38',
+    alignItems: 'center',
+    justifyContent: 'center',
+    position: 'relative',
+  },
+  bellBadge: {
+    position: 'absolute',
+    top: -2,
+    right: -2,
+    backgroundColor: '#ED1D24',
+    minWidth: 16,
+    height: 16,
+    borderRadius: 8,
+    alignItems: 'center',
+    justifyContent: 'center',
+    paddingHorizontal: 3,
+  },
+  bellBadgeText: {
+    color: '#FFFFFF',
+    fontSize: 9,
+    fontFamily: 'Outfit_700Bold',
+    lineHeight: 12,
   },
   countBadge: {
     backgroundColor: '#1A1A22',

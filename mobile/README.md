@@ -58,6 +58,7 @@ Mỗi thư viện cài đặt đều phục vụ đúng yêu cầu kỹ thuật,
 | `expo-image-picker` | `~58.0.10` | Cho phép người dùng chọn ảnh đại diện từ thư viện ảnh thiết bị (Android/iOS) hoặc chụp mới, hỗ trợ crop 1:1 và nén chất lượng an toàn. |
 | `react-native-screens` | `~4.30.0` | Tối ưu hóa bộ nhớ native cho các màn hình điều hướng của React Navigation. |
 | `react-native-safe-area-context`| `~5.10.1` | Xử lý vùng an toàn (tai thỏ, notch, thanh điều hướng dưới) trên Android/iOS. |
+| `socket.io-client` | `^4.8.4` | Kết nối WebSocket/polling hai chiều thời gian thực tới backend Node.js để nhận sự kiện thông báo mới (`new_notification`) và chương mới (`new_chapter_published`) khi app đang mở, tự kết nối lại khi mất mạng và ngắt an toàn khi đăng xuất. |
 
 ---
 
@@ -474,6 +475,73 @@ Tất cả các API dưới đây đã được gọi thử nghiệm trực ti�
   - `success`: boolean (`true`)
   - `message`: string (`"Đổi mật khẩu thành công!"`)
 
+### 3.21. `GET /api/notifications` (Lấy danh sách thông báo & số lượng chưa đọc)
+- **Mục đích:** Tải tối đa 30 thông báo gần nhất của người dùng đã đăng nhập và đếm số thông báo chưa đọc (`unread_count`).
+- **Header:** `Authorization: Bearer <token>`
+- **Trạng thái HTTP:** `200 OK`
+- **Response Fields thực tế (Đã kiểm chứng runtime):**
+  ```json
+  {
+    "success": true,
+    "unread_count": 2,
+    "notifications": [
+      {
+        "id": 30,
+        "user_id": 269,
+        "title": "Chương mới: The Amazing Spider-Man",
+        "message": "Chương 10: Trận chiến tại New York đã chính thức phát hành!",
+        "type": "new_chapter",
+        "link_url": "/stories/1/chapters/88",
+        "is_read": false,
+        "createdAt": "2026-10-27T08:33:30.000Z",
+        "updatedAt": "2026-10-27T08:33:30.000Z"
+      }
+    ]
+  }
+  ```
+
+### 3.22. `PATCH /api/notifications/:id/read` (Đánh dấu 1 thông báo là đã đọc)
+- **Mục đích:** Cập nhật trạng thái `is_read = true` cho thông báo cụ thể thuộc quyền sở hữu của người dùng.
+- **Header:** `Authorization: Bearer <token>`
+- **Trạng thái HTTP:** `200 OK`
+- **Response Fields thực tế:**
+  ```json
+  {
+    "success": true,
+    "message": "Đã đánh dấu đã đọc.",
+    "unread_count": 1
+  }
+  ```
+
+### 3.23. `PATCH /api/notifications/read-all` (Đánh dấu tất cả thông báo là đã đọc)
+- **Mục đích:** Đánh dấu toàn bộ thông báo chưa đọc của người dùng thành đã đọc một lượt.
+- **Header:** `Authorization: Bearer <token>`
+- **Trạng thái HTTP:** `200 OK`
+- **Response Fields thực tế:**
+  ```json
+  {
+    "success": true,
+    "message": "Đã đánh dấu tất cả thông báo là đã đọc.",
+    "unread_count": 0
+  }
+  ```
+
+### 3.24. Kết nối và Sự kiện Socket.IO Thời Gian Thực
+- **Địa chỉ kết nối:** `EXPO_PUBLIC_API_URL` (ví dụ: `http://10.0.2.2:5000` trên Android Emulator).
+- **Cơ chế truyền tải (Transports):** `['websocket', 'polling']` với tự động phục hồi kết nối (`reconnection: true`, `reconnectionDelay: 1000`).
+- **Gia nhập phòng (Client -> Server):**
+  - `socket.emit('join_user', userId)`: Sau khi kết nối thành công, app gửi sự kiện này để gia nhập phòng riêng `user_${userId}`.
+  - `socket.emit('join_story', storyId)`: Gia nhập phòng bộ truyện `story_${storyId}` để nhận sự kiện phát hành chương mới.
+- **Sự kiện từ máy chủ phát xuống (Server -> Client):**
+  - Sự kiện `new_notification`: Phát tới phòng `user_${userId}` khi hệ thống tạo thông báo mới (ví dụ khi admin phát hành chương mới của bộ truyện mà người dùng đang bấm theo dõi).
+    - Payload gửi kèm: Object bản ghi `Notification` đầy đủ (`id`, `title`, `message`, `type`, `link_url`, `is_read`, `createdAt`).
+  - Sự kiện `new_chapter_published`: Phát tới phòng `story_${storyId}` khi admin vừa thêm chương mới.
+    - Payload gửi kèm: `{ storyId, storyTitle, chapter }`.
+- **Hành vi xử lý phía Mobile:**
+  - Ngay khi nhận được `new_notification`: Tự động tăng `unreadCount` thêm 1, chèn thông báo vào đầu danh sách, đồng thời kích hoạt banner nổi thông báo trong ứng dụng (`InAppNotificationBanner`) trượt xuống từ cạnh trên màn hình.
+  - Khi bấm vào banner hoặc thông báo trong danh sách: Đánh dấu đã đọc và tự động mở đúng màn hình đọc chương truyện (`ChapterReaderScreen`) hoặc chi tiết truyện (`StoryDetailScreen`). Nếu chương bị khóa quyền đọc, app chuyển ngay vào luồng xử lý `AccessBlockedSheet` đã có.
+  - Khi người dùng đăng xuất: Tự động ngắt kết nối (`disconnectSocket()`), xóa danh sách thông báo và đưa `unreadCount` về 0. Không bao giờ tạo trùng lặp kết nối.
+
 ---
 
 ## 4. ĐIỂM KHÁC BIỆT THỰC TẾ SO VỚI TÀI LIỆU CŨ VÀ CÁCH XỬ LÝ TRONG APP
@@ -496,6 +564,9 @@ Tất cả các API dưới đây đã được gọi thử nghiệm trực ti�
    - Mobile app tuân thủ chặt chẽ theo backend thực tế và Web: kiểm tra dung lượng không vượt quá 2MB trước khi gửi, đồng thời nén ảnh (`quality: 0.8`) qua `expo-image-picker` để đảm bảo tệp tải lên mượt mà và không bao giờ gặp lỗi `MulterError: File too large`.
 8. **Đường dẫn ảnh đại diện trả về dạng tương đối (`/uploads/avatars/...`):**
    - Backend trả về đường dẫn tương đối `/uploads/avatars/...`. App mobile tự động ghép với Base URL thông qua tiện ích `getProxiedImageUrl` (`${API_BASE_URL}/uploads/...`) và component `UserAvatar` để ảnh hiển thị chuẩn xác ở mọi màn hình (Header, Tab Tài Khoản, Thảo luận chương, Chỉnh sửa hồ sơ).
+9. **Nhóm Route Thông Báo và Socket.IO Chưa Được Tài Liệu Hóa Trong `docs/API.md`:**
+   - Trong tài liệu sơ bộ `docs/API.md`, nhóm route `/api/notifications` và toàn bộ cơ chế Socket.IO hoàn toàn không được liệt kê.
+   - Bằng việc đọc trực tiếp mã nguồn backend thực tế (`notificationRoutes.js`, `notificationController.js`, `Notification.js`, `socketService.js`, `adminController.js`) kết hợp chạy kiểm thử độc lập với tài khoản độc giả mới, toàn bộ cấu trúc phản hồi (`notifications`, `unread_count`, `id`, `link_url`, `is_read`, v.v.) và cơ chế phòng (`user_${userId}`, `story_${storyId}`) cùng 2 sự kiện thời gian thực (`new_notification`, `new_chapter_published`) đã được xác nhận chính xác 100% và đưa vào ứng dụng mobile.
 
 ---
 
@@ -656,5 +727,80 @@ const bcrypt = require('../backend/node_modules/bcryptjs');
   1. Mở trình duyệt Chrome trong Android Emulator.
   2. Tìm kiếm một hình ảnh bất kỳ (ví dụ: Marvel Avatar).
   3. Nhấn giữ vào ảnh -> Chọn **Download image**. Ảnh sẽ được lưu vào thư viện của máy ảo.
+
+---
+
+### 6.8. Hướng dẫn kiểm thử Tính năng Thông Báo & Thông Báo Thời Gian Thực (Socket.IO)
+
+#### A. Kiểm thử Danh sách Thông báo & Trạng thái Chưa đăng nhập:
+1. **Khi chưa đăng nhập:**
+   - Mở ứng dụng hoặc đăng xuất tài khoản.
+   - Bấm vào tab **"Thông Báo"** ở thanh điều hướng dưới đáy (icon chuông).
+   - Quan sát: App hiển thị thẻ yêu cầu đăng nhập thân thiện với icon chuông viền đỏ Marvel, tiêu đề "ĐĂNG NHẬP ĐỂ XEM THÔNG BÁO" và nút "ĐĂNG NHẬP NGAY".
+   - Bấm nút "ĐĂNG NHẬP NGAY": Chuyển mượt mà sang màn hình Đăng Nhập.
+2. **Khi đã đăng nhập:**
+   - Đăng nhập vào tài khoản độc giả.
+   - Tab "Thông Báo" hiển thị danh sách các thông báo (tiêu đề, nội dung tóm tắt, thời gian định dạng tiếng Việt, huy hiệu Mới/Đã đọc).
+   - Kéo danh sách từ trên xuống dưới (Pull-to-refresh): Spinner đỏ Marvel xoay và nạp lại dữ liệu mới nhất từ server.
+   - Mỗi lần chuyển từ tab khác sang tab Thông Báo, app tự động gọi lại API (`useFocusEffect`), hoàn toàn không cache cứng.
+3. **Đánh dấu đã đọc từng thông báo & Điều hướng thông minh:**
+   - Bấm vào một thông báo chưa đọc:
+     - Chấm đỏ trạng thái biến mất, thẻ chuyển sang trạng thái đã đọc (`is_read: true`).
+     - Số đếm trên huy hiệu (Badge) tại Tab "Thông Báo" và Header trang chủ giảm đi 1 ngay lập tức.
+     - App tự động mở đúng chương truyện (`ChapterReaderScreen`) hoặc chi tiết truyện (`StoryDetailScreen`) tương ứng với `link_url`.
+     - Nếu chương truyện trả phí bị khóa quyền đọc, app chuyển vào đúng luồng chặn quyền đọc `AccessBlockedSheet` đã có.
+4. **Đánh dấu tất cả đã đọc:**
+   - Tại góc phải header màn hình Thông Báo, quan sát nút **"Đã đọc tất cả"**.
+   - Bấm nút: Gọi `PATCH /api/notifications/read-all`. Toàn bộ các thông báo chuyển sang "Đã đọc", huy hiệu số chưa đọc biến mất hoàn toàn. Nút "Đã đọc tất cả" tự động chuyển sang trạng thái mờ (disabled).
+5. **Trạng thái danh sách trống:**
+   - Khi tài khoản chưa có thông báo nào: App hiển thị icon tĩnh vector SVG `notifications-off-outline` trong vòng tròn tối `#1A1A22` (tuyệt đối không dùng ảnh internet), dòng chữ "Chưa có thông báo nào" và nút "Khám phá kho truyện" đưa về trang chủ.
+
+#### B. Kiểm thử Thông Báo Thời Gian Thực (Socket.IO) khi App đang mở:
+Khi ứng dụng đang mở trên Android Emulator và người dùng đã đăng nhập:
+1. App tự động kết nối Socket.IO tới backend (`http://10.0.2.2:5000` hoặc máy tính host) và gia nhập phòng cá nhân `user_${userId}`.
+2. Để mô phỏng phát thông báo thời gian thực đến tài khoản đang mở app (ví dụ User ID `269` hoặc ID của tài khoản đang đăng nhập trong app), bạn có thể chạy lệnh Node.js sau tại thư mục gốc dự án:
+   ```bash
+   node -e "
+   const { Notification } = require('./backend/src/models');
+   const { sendNotificationToUser } = require('./backend/src/services/socketService');
+   const { io } = require('./backend/node_modules/socket.io-client');
+
+   (async () => {
+     // Thay TARGET_USER_ID bằng ID người dùng đang đăng nhập trên Mobile
+     const TARGET_USER_ID = 269; 
+     
+     const notif = await Notification.create({
+       user_id: TARGET_USER_ID,
+       title: 'Chương mới: The Amazing Spider-Man',
+       message: 'Chương 12: Đột kích tháp Oscorp đã chính thức ra mắt!',
+       type: 'new_chapter',
+       link_url: '/stories/1/chapters/88',
+       is_read: false
+     });
+
+     // Kết nối nhanh tới backend và phát qua socket
+     const socket = io('http://localhost:5000');
+     socket.on('connect', () => {
+       console.log('Phát thông báo thời gian thực tới user_' + TARGET_USER_ID);
+       socket.emit('join_user', TARGET_USER_ID);
+       // Gửi qua socketService backend
+       sendNotificationToUser(TARGET_USER_ID, notif.toJSON());
+       setTimeout(() => {
+         socket.disconnect();
+         console.log('Hoàn tất phát thông báo mẫu.');
+         process.exit(0);
+       }, 500);
+     });
+   })();
+   "
+   ```
+3. **Quan sát phản hồi ngay lập tức trên màn hình Android Emulator:**
+   - Một **Banner thông báo thời gian thực (`InAppNotificationBanner`)** màu tối Marvel với thanh nhấn đỏ và icon chuông sẽ tự động trượt xuống từ mép trên cùng của màn hình.
+   - Huy hiệu số chưa đọc (Badge đỏ) trên icon chuông ở Header trang chủ và tab "Thông Báo" tăng lên 1 ngay lập tức mà không cần đăng nhập lại hay tải lại trang.
+   - Bấm vào banner nổi: Banner tự động đóng, thông báo được đánh dấu đã đọc và mở thẳng vào chương truyện tương ứng!
+4. **Kiểm thử đăng xuất & ngắt kết nối:**
+   - Vào tab "Tài Khoản" -> Bấm "Đăng Xuất".
+   - Socket.IO tự động ngắt kết nối (`disconnect`), huy hiệu thông báo được xóa sạch, đảm bảo an toàn và không gây rò rỉ kết nối ngầm.
+
 
 
