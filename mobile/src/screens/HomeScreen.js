@@ -14,10 +14,11 @@ import {
 import { Ionicons } from '@expo/vector-icons';
 import api from '../services/api';
 import ComicCard from '../components/ComicCard';
+import Pagination from '../components/Pagination';
 import { useAuth } from '../context/AuthContext';
 import { useNotifications } from '../context/NotificationContext';
 
-const PAGE_LIMIT = 6;
+const STORIES_PER_PAGE = 8;
 
 export default function HomeScreen({ navigation }) {
   const { isAuthenticated } = useAuth();
@@ -33,14 +34,14 @@ export default function HomeScreen({ navigation }) {
 
   const [loading, setLoading] = useState(true);
   const [refreshing, setRefreshing] = useState(false);
-  const [loadingMore, setLoadingMore] = useState(false);
   const [error, setError] = useState(null);
 
+  const flatListRef = useRef(null);
   const searchDebounceTimer = useRef(null);
 
   // Fetch stories function
   const fetchStories = useCallback(async (targetPage = 1, searchKeyword = '', isRefresh = false) => {
-    if (targetPage === 1 && !isRefresh) {
+    if (!isRefresh) {
       setLoading(true);
     }
     setError(null);
@@ -48,7 +49,7 @@ export default function HomeScreen({ navigation }) {
     try {
       const params = new URLSearchParams();
       params.append('page', String(targetPage));
-      params.append('limit', String(PAGE_LIMIT));
+      params.append('limit', String(STORIES_PER_PAGE));
       if (searchKeyword && searchKeyword.trim()) {
         params.append('search', searchKeyword.trim());
       }
@@ -56,19 +57,9 @@ export default function HomeScreen({ navigation }) {
       const res = await api.get(`/api/stories?${params.toString()}`);
 
       if (res.success) {
-        const fetchedList = res.stories || [];
+        setStories(res.stories || []);
         setTotalPages(res.totalPages || 1);
         setTotalStories(res.total || 0);
-
-        if (targetPage === 1) {
-          setStories(fetchedList);
-        } else {
-          setStories((prev) => {
-            const existingIds = new Set(prev.map((s) => s.id));
-            const newItems = fetchedList.filter((s) => !existingIds.has(s.id));
-            return [...prev, ...newItems];
-          });
-        }
         setPage(targetPage);
       } else {
         setError('Không thể tải danh sách truyện.');
@@ -78,7 +69,6 @@ export default function HomeScreen({ navigation }) {
     } finally {
       setLoading(false);
       setRefreshing(false);
-      setLoadingMore(false);
     }
   }, []);
 
@@ -87,22 +77,20 @@ export default function HomeScreen({ navigation }) {
     fetchStories(1, appliedSearch);
   }, [appliedSearch, fetchStories]);
 
-  // Pull to refresh
+  // Pull to refresh (maintains current page)
   const onRefresh = useCallback(() => {
     setRefreshing(true);
-    fetchStories(1, appliedSearch, true);
-  }, [appliedSearch, fetchStories]);
+    fetchStories(page, appliedSearch, true);
+  }, [page, appliedSearch, fetchStories]);
 
-  // Infinite scroll load more
-  const handleLoadMore = () => {
-    if (loading || loadingMore || refreshing) return;
-    if (page < totalPages) {
-      setLoadingMore(true);
-      fetchStories(page + 1, appliedSearch);
-    }
+  // Page change handler
+  const handlePageChange = (newPage) => {
+    if (newPage === page || loading) return;
+    fetchStories(newPage, appliedSearch);
+    flatListRef.current?.scrollToOffset({ offset: 0, animated: true });
   };
 
-  // Search input change with debounce
+  // Search input change with debounce (resets to page 1)
   const handleSearchChange = (text) => {
     setSearchQuery(text);
     if (searchDebounceTimer.current) {
@@ -110,12 +98,14 @@ export default function HomeScreen({ navigation }) {
     }
     searchDebounceTimer.current = setTimeout(() => {
       setAppliedSearch(text);
+      setPage(1);
     }, 450);
   };
 
   const clearSearch = () => {
     setSearchQuery('');
     setAppliedSearch('');
+    setPage(1);
   };
 
   const renderHeader = () => (
@@ -186,12 +176,14 @@ export default function HomeScreen({ navigation }) {
   );
 
   const renderFooter = () => {
-    if (!loadingMore) return <View style={{ height: 20 }} />;
+    if (loading || stories.length === 0) return <View style={{ height: 20 }} />;
     return (
-      <View style={styles.loadingMoreWrapper}>
-        <ActivityIndicator size="small" color="#ED1D24" />
-        <Text style={styles.loadingMoreText}>Đang tải thêm truyện...</Text>
-      </View>
+      <Pagination
+        currentPage={page}
+        totalPages={totalPages}
+        onPageChange={handlePageChange}
+        style={{ marginTop: 12, marginBottom: 24 }}
+      />
     );
   };
 
@@ -247,6 +239,7 @@ export default function HomeScreen({ navigation }) {
           </View>
         ) : (
           <FlatList
+            ref={flatListRef}
             data={stories}
             keyExtractor={(item) => String(item.id)}
             renderItem={({ item }) => (
@@ -258,8 +251,6 @@ export default function HomeScreen({ navigation }) {
             ListHeaderComponent={renderHeader}
             ListFooterComponent={renderFooter}
             ListEmptyComponent={renderEmpty}
-            onEndReached={handleLoadMore}
-            onEndReachedThreshold={0.4}
             refreshControl={
               <RefreshControl
                 refreshing={refreshing}

@@ -3,7 +3,7 @@ import { View, Text, TouchableOpacity, StyleSheet } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import ProxiedImage from './ProxiedImage';
 
-export default function ChapterItem({ chapter, story, isUnlocked, onPress }) {
+export default function ChapterItem({ chapter, story, isUnlocked, onPress, isHighlighted }) {
   if (!chapter) return null;
 
   const accentColor = chapter.accent_color || '#ED1D24';
@@ -47,7 +47,10 @@ export default function ChapterItem({ chapter, story, isUnlocked, onPress }) {
   return (
     <TouchableOpacity
       activeOpacity={0.75}
-      style={styles.container}
+      style={[
+        styles.container,
+        isHighlighted && styles.containerHighlighted
+      ]}
       onPress={() => onPress && onPress(chapter)}
     >
       {/* Accent bar bên trái */}
@@ -95,6 +98,11 @@ const styles = StyleSheet.create({
     borderColor: '#2A2A38',
     marginBottom: 8,
     overflow: 'hidden',
+  },
+  containerHighlighted: {
+    borderColor: '#ED1D24',
+    borderWidth: 1.5,
+    backgroundColor: '#262635',
   },
   accentBar: {
     position: 'absolute',

@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useCallback, useMemo } from 'react';
+import React, { useState, useEffect, useCallback, useMemo, useRef } from 'react';
 import {
   View,
   Text,
@@ -8,7 +8,8 @@ import {
   ActivityIndicator,
   StatusBar,
   SafeAreaView,
-  Alert
+  Alert,
+  TextInput
 } from 'react-native';
 import { useFocusEffect } from '@react-navigation/native';
 import { Ionicons } from '@expo/vector-icons';
@@ -16,7 +17,10 @@ import api from '../services/api';
 import { useAuth } from '../context/AuthContext';
 import ProxiedImage from '../components/ProxiedImage';
 import ChapterItem from '../components/ChapterItem';
+import Pagination from '../components/Pagination';
 import SandboxPaymentModal from '../components/SandboxPaymentModal';
+
+const CHAPTERS_PER_PAGE = 9;
 
 export default function StoryDetailScreen({ route, navigation }) {
   const { storyId } = route.params || {};
@@ -34,29 +38,57 @@ export default function StoryDetailScreen({ route, navigation }) {
   // Trạng thái mua truyện lẻ Sandbox (Feature 1)
   const [isPurchaseModalOpen, setIsPurchaseModalOpen] = useState(false);
 
-  // Tải thông tin chi tiết truyện
-  useEffect(() => {
-    if (!storyId) return;
+  // Phân trang & điều hướng chương (CHAPTERS_PER_PAGE = 9)
+  const [chapterSortOrder, setChapterSortOrder] = useState('asc'); // 'asc': Cũ nhất trước, 'desc': Mới nhất trước
+  const [chapterPage, setChapterPage] = useState(1);
+  const [jumpInput, setJumpInput] = useState('');
+  const [jumpError, setJumpError] = useState('');
+  const [highlightedChapterId, setHighlightedChapterId] = useState(null);
 
-    const fetchStoryDetail = async () => {
-      setLoading(true);
-      setError(null);
-      try {
-        const res = await api.get(`/api/stories/${storyId}`);
-        if (res.success && res.story) {
-          setStory(res.story);
-        } else {
-          setError('Không tìm thấy thông tin truyện.');
-        }
-      } catch (err) {
-        setError(err.message || 'Lỗi khi tải thông tin truyện.');
-      } finally {
-        setLoading(false);
+  const scrollViewRef = useRef(null);
+  const chaptersSectionY = useRef(0);
+  const highlightTimerRef = useRef(null);
+
+  // Reset phân trang và thứ tự khi chuyển bộ truyện
+  useEffect(() => {
+    setChapterSortOrder('asc');
+    setChapterPage(1);
+    setJumpInput('');
+    setJumpError('');
+    setHighlightedChapterId(null);
+  }, [storyId]);
+
+  // Hủy timer làm nổi bật khi unmount
+  useEffect(() => {
+    return () => {
+      if (highlightTimerRef.current) {
+        clearTimeout(highlightTimerRef.current);
       }
     };
+  }, []);
 
-    fetchStoryDetail();
+  // Tải thông tin chi tiết truyện
+  const fetchStoryDetail = useCallback(async () => {
+    if (!storyId) return;
+    setLoading(true);
+    setError(null);
+    try {
+      const res = await api.get(`/api/stories/${storyId}`);
+      if (res.success && res.story) {
+        setStory(res.story);
+      } else {
+        setError('Không tìm thấy thông tin truyện.');
+      }
+    } catch (err) {
+      setError(err.message || 'Lỗi khi tải thông tin truyện.');
+    } finally {
+      setLoading(false);
+    }
   }, [storyId]);
+
+  useEffect(() => {
+    fetchStoryDetail();
+  }, [fetchStoryDetail]);
 
   // Lấy trạng thái theo dõi mới nhất mỗi khi vào màn hình (KHÔNG cache cứng, đồng bộ với Web)
   const fetchFollowStatus = useCallback(async () => {
@@ -114,6 +146,111 @@ export default function StoryDetailScreen({ route, navigation }) {
     }
   };
 
+  // Khoảng số chương min - max thực tế trong bộ truyện
+  const { minChapter, maxChapter } = useMemo(() => {
+    if (!story?.chapters || story.chapters.length === 0) {
+      return { minChapter: null, maxChapter: null };
+    }
+    const nums = story.chapters
+      .map((c) => Number(c.chapter_number))
+      .filter((n) => !isNaN(n));
+    if (nums.length === 0) {
+      return { minChapter: null, maxChapter: null };
+    }
+    return {
+      minChapter: Math.min(...nums),
+      maxChapter: Math.max(...nums),
+    };
+  }, [story?.chapters]);
+
+  // Sắp xếp danh sách chương theo thứ tự cũ nhất hoặc mới nhất
+  const sortedChapters = useMemo(() => {
+    if (!story?.chapters || story.chapters.length === 0) return [];
+    const list = [...story.chapters];
+    list.sort((a, b) => {
+      const numA = Number(a.chapter_number) || 0;
+      const numB = Number(b.chapter_number) || 0;
+      return chapterSortOrder === 'asc' ? numA - numB : numB - numA;
+    });
+    return list;
+  }, [story?.chapters, chapterSortOrder]);
+
+  const totalChapterPages = Math.max(1, Math.ceil(sortedChapters.length / CHAPTERS_PER_PAGE));
+  const safeChapterPage = Math.min(Math.max(1, chapterPage), totalChapterPages);
+
+  const currentChapters = useMemo(() => {
+    const startIdx = (safeChapterPage - 1) * CHAPTERS_PER_PAGE;
+    return sortedChapters.slice(startIdx, startIdx + CHAPTERS_PER_PAGE);
+  }, [sortedChapters, safeChapterPage]);
+
+  // Đổi thứ tự sắp xếp chương: tự động quay về trang 1
+  const handleToggleSortOrder = () => {
+    setChapterSortOrder((prev) => (prev === 'asc' ? 'desc' : 'asc'));
+    setChapterPage(1);
+    setJumpError('');
+  };
+
+  // Chuyển trang chương và cuộn mượt về đầu danh sách chương
+  const handleChapterPageChange = (targetPage) => {
+    setChapterPage(targetPage);
+    setJumpError('');
+    if (scrollViewRef.current && chaptersSectionY.current > 0) {
+      scrollViewRef.current.scrollTo({
+        y: Math.max(0, chaptersSectionY.current - 10),
+        animated: true,
+      });
+    }
+  };
+
+  // Nhảy tới chương số: tính đúng trang theo chapter_number thực tế
+  const handleJumpToChapter = () => {
+    const trimmed = jumpInput.trim();
+    if (!trimmed) {
+      setJumpError('Vui lòng nhập số chương.');
+      return;
+    }
+    const targetNum = Number(trimmed);
+    if (isNaN(targetNum)) {
+      setJumpError('Vui lòng nhập một số hợp lệ.');
+      return;
+    }
+
+    const targetIndex = sortedChapters.findIndex(
+      (c) => Number(c.chapter_number) === targetNum
+    );
+
+    if (targetIndex === -1) {
+      if (minChapter !== null && maxChapter !== null) {
+        setJumpError(`Truyện này chỉ có chương ${minChapter} đến ${maxChapter}.`);
+      } else {
+        setJumpError('Không tìm thấy số chương này.');
+      }
+      return;
+    }
+
+    const targetPage = Math.floor(targetIndex / CHAPTERS_PER_PAGE) + 1;
+    setChapterPage(targetPage);
+    setJumpError('');
+    setJumpInput('');
+
+    const targetChapter = sortedChapters[targetIndex];
+    setHighlightedChapterId(targetChapter.id);
+
+    if (highlightTimerRef.current) {
+      clearTimeout(highlightTimerRef.current);
+    }
+    highlightTimerRef.current = setTimeout(() => {
+      setHighlightedChapterId(null);
+    }, 2000);
+
+    if (scrollViewRef.current && chaptersSectionY.current > 0) {
+      scrollViewRef.current.scrollTo({
+        y: Math.max(0, chaptersSectionY.current - 10),
+        animated: true,
+      });
+    }
+  };
+
   // Kiểm tra quyền sở hữu truyện lẻ từ AuthContext
   const isPurchased = useMemo(() => {
     if (!story?.id) return false;
@@ -160,9 +297,15 @@ export default function StoryDetailScreen({ route, navigation }) {
           <Ionicons name="alert-circle-outline" size={48} color="#F87171" />
           <Text style={styles.errorTitle}>Lỗi tải dữ liệu</Text>
           <Text style={styles.errorSub}>{error || 'Truyện không tồn tại.'}</Text>
-          <TouchableOpacity style={styles.retryBtn} onPress={() => navigation.goBack()}>
-            <Text style={styles.retryBtnText}>Quay lại</Text>
-          </TouchableOpacity>
+          <View style={styles.errorActionsRow}>
+            <TouchableOpacity style={styles.retryBtn} onPress={fetchStoryDetail}>
+              <Ionicons name="refresh" size={15} color="#FFFFFF" style={{ marginRight: 6 }} />
+              <Text style={styles.retryBtnText}>Thử lại</Text>
+            </TouchableOpacity>
+            <TouchableOpacity style={styles.backErrorBtn} onPress={() => navigation.goBack()}>
+              <Text style={styles.backErrorBtnText}>Quay lại</Text>
+            </TouchableOpacity>
+          </View>
         </View>
       </SafeAreaView>
     );
@@ -189,7 +332,7 @@ export default function StoryDetailScreen({ route, navigation }) {
         <View style={{ width: 36 }} />
       </View>
 
-      <ScrollView contentContainerStyle={styles.scrollContent}>
+      <ScrollView ref={scrollViewRef} contentContainerStyle={styles.scrollContent}>
         {/* Hero Card */}
         <View style={styles.heroCard}>
           <View style={styles.coverRow}>
@@ -383,7 +526,12 @@ export default function StoryDetailScreen({ route, navigation }) {
         </View>
 
         {/* Danh Sách Chương */}
-        <View style={styles.chaptersSection}>
+        <View
+          style={styles.chaptersSection}
+          onLayout={(e) => {
+            chaptersSectionY.current = e.nativeEvent.layout.y;
+          }}
+        >
           <View style={styles.chaptersHeader}>
             <View style={styles.chaptersTitleRow}>
               <Ionicons name="book" size={20} color="#ED1D24" style={{ marginRight: 8 }} />
@@ -406,9 +554,68 @@ export default function StoryDetailScreen({ route, navigation }) {
             </View>
           </View>
 
+          {/* Hàng công cụ: Đổi thứ tự & Nhảy tới chương */}
+          {story.chapters && story.chapters.length >= 2 && (
+            <View style={styles.chapterToolbar}>
+              <View style={styles.chapterToolbarTop}>
+                <TouchableOpacity
+                  style={styles.sortToggleBtn}
+                  onPress={handleToggleSortOrder}
+                  activeOpacity={0.7}
+                >
+                  <Ionicons
+                    name="swap-vertical"
+                    size={14}
+                    color="#ED1D24"
+                    style={{ marginRight: 5 }}
+                  />
+                  <Text style={styles.sortToggleText}>
+                    {chapterSortOrder === 'asc' ? 'Cũ nhất trước' : 'Mới nhất trước'}
+                  </Text>
+                </TouchableOpacity>
+              </View>
+
+              <View style={styles.jumpRow}>
+                <Text style={styles.jumpLabel}>Nhảy tới chương số:</Text>
+                <View style={styles.jumpControls}>
+                  <TextInput
+                    style={styles.jumpInput}
+                    keyboardType="numeric"
+                    placeholder={
+                      minChapter !== null && maxChapter !== null
+                        ? `${minChapter} - ${maxChapter}`
+                        : 'Số'
+                    }
+                    placeholderTextColor="#6B7280"
+                    value={jumpInput}
+                    onChangeText={(text) => {
+                      setJumpInput(text);
+                      if (jumpError) setJumpError('');
+                    }}
+                    returnKeyType="done"
+                    onSubmitEditing={handleJumpToChapter}
+                  />
+                  <TouchableOpacity
+                    style={styles.jumpBtn}
+                    onPress={handleJumpToChapter}
+                    activeOpacity={0.75}
+                  >
+                    <Text style={styles.jumpBtnText}>Đi</Text>
+                  </TouchableOpacity>
+                </View>
+              </View>
+              {jumpError ? (
+                <View style={styles.jumpErrorBox}>
+                  <Ionicons name="alert-circle-outline" size={14} color="#F87171" style={{ marginRight: 4 }} />
+                  <Text style={styles.jumpErrorText}>{jumpError}</Text>
+                </View>
+              ) : null}
+            </View>
+          )}
+
           {/* Danh sách các ChapterItem */}
-          {story.chapters && story.chapters.length > 0 ? (
-            story.chapters.map((ch) => {
+          {currentChapters && currentChapters.length > 0 ? (
+            currentChapters.map((ch) => {
               const isUnlocked = canAccessChapter(story, ch);
               return (
                 <ChapterItem
@@ -416,6 +623,7 @@ export default function StoryDetailScreen({ route, navigation }) {
                   chapter={ch}
                   story={story}
                   isUnlocked={isUnlocked}
+                  isHighlighted={highlightedChapterId === ch.id}
                   onPress={(selectedChapter) => {
                     navigation.navigate('ChapterReader', {
                       chapterId: selectedChapter.id,
@@ -433,6 +641,16 @@ export default function StoryDetailScreen({ route, navigation }) {
               <Ionicons name="file-tray-outline" size={32} color="#6B7280" />
               <Text style={styles.emptyChaptersText}>Chưa có chương nào được nạp cho truyện này.</Text>
             </View>
+          )}
+
+          {/* Phân trang danh sách chương */}
+          {totalChapterPages > 1 && (
+            <Pagination
+              currentPage={safeChapterPage}
+              totalPages={totalChapterPages}
+              onPageChange={handleChapterPageChange}
+              style={{ marginTop: 14 }}
+            />
           )}
         </View>
       </ScrollView>
@@ -519,16 +737,38 @@ const styles = StyleSheet.create({
     marginTop: 6,
     marginBottom: 20,
   },
+  errorActionsRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 12,
+  },
   retryBtn: {
     backgroundColor: '#ED1D24',
-    paddingHorizontal: 20,
+    paddingHorizontal: 18,
     paddingVertical: 10,
     borderRadius: 8,
+    flexDirection: 'row',
+    alignItems: 'center',
   },
   retryBtnText: {
     color: '#FFFFFF',
     fontWeight: '700',
     fontFamily: 'Outfit_700Bold',
+    fontSize: 13,
+  },
+  backErrorBtn: {
+    backgroundColor: '#1A1A22',
+    borderWidth: 1,
+    borderColor: '#2A2A38',
+    paddingHorizontal: 18,
+    paddingVertical: 10,
+    borderRadius: 8,
+  },
+  backErrorBtnText: {
+    color: '#D1D5DB',
+    fontWeight: '600',
+    fontFamily: 'Inter_600SemiBold',
+    fontSize: 13,
   },
   heroCard: {
     backgroundColor: '#1A1A22',
@@ -901,5 +1141,90 @@ const styles = StyleSheet.create({
     fontSize: 12,
     fontFamily: 'Inter_400Regular',
     marginTop: 8,
+  },
+  chapterToolbar: {
+    backgroundColor: '#16161F',
+    borderRadius: 12,
+    borderWidth: 1,
+    borderColor: '#2A2A38',
+    padding: 12,
+    marginBottom: 12,
+  },
+  chapterToolbarTop: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'flex-start',
+    marginBottom: 10,
+  },
+  sortToggleBtn: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    backgroundColor: '#1A1A22',
+    borderWidth: 1,
+    borderColor: '#2A2A38',
+    borderRadius: 8,
+    paddingHorizontal: 12,
+    paddingVertical: 6,
+  },
+  sortToggleText: {
+    color: '#E5E7EB',
+    fontSize: 12,
+    fontWeight: '600',
+    fontFamily: 'Inter_600SemiBold',
+  },
+  jumpRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+    flexWrap: 'wrap',
+    gap: 8,
+  },
+  jumpLabel: {
+    color: '#9CA3AF',
+    fontSize: 12,
+    fontFamily: 'Inter_500Medium',
+  },
+  jumpControls: {
+    flexDirection: 'row',
+    alignItems: 'center',
+  },
+  jumpInput: {
+    backgroundColor: '#0F0F14',
+    borderWidth: 1,
+    borderColor: '#2A2A38',
+    borderRadius: 8,
+    paddingHorizontal: 10,
+    paddingVertical: 6,
+    color: '#FFFFFF',
+    fontSize: 13,
+    width: 80,
+    textAlign: 'center',
+    fontFamily: 'Inter_500Medium',
+  },
+  jumpBtn: {
+    backgroundColor: '#ED1D24',
+    borderRadius: 8,
+    paddingHorizontal: 14,
+    paddingVertical: 7,
+    marginLeft: 8,
+    justifyContent: 'center',
+    alignItems: 'center',
+  },
+  jumpBtnText: {
+    color: '#FFFFFF',
+    fontSize: 13,
+    fontWeight: '700',
+    fontFamily: 'Outfit_700Bold',
+  },
+  jumpErrorBox: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    marginTop: 8,
+    paddingHorizontal: 2,
+  },
+  jumpErrorText: {
+    color: '#F87171',
+    fontSize: 12,
+    fontFamily: 'Inter_400Regular',
   },
 });
