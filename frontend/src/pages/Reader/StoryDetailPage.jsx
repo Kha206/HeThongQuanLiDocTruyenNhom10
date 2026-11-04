@@ -1,20 +1,25 @@
-import React, { useState, useEffect } from 'react';
-import { useParams, Link, useNavigate } from 'react-router-dom';
+import React, { useState, useEffect, useMemo, useRef } from 'react';
+import { useParams, Link, useNavigate, useSearchParams } from 'react-router-dom';
 import api from '../../services/api';
 import { useAuth } from '../../context/AuthContext';
 import {
   Star, Eye, Calendar, BookOpen, ShieldCheck,
   ChevronLeft, Play, Lock, ArrowRight, Sparkles,
-  CreditCard, CheckCircle2, ShieldAlert, Heart,
-  ShoppingBag, Bookmark
+  CreditCard, CheckCircle2, Heart,
+  ShoppingBag, ArrowUpDown, AlertCircle
 } from 'lucide-react';
 import ProxiedImage from '../../components/ProxiedImage';
 import PaymentModal from '../../components/PaymentModal';
+import Pagination from '../../components/Pagination';
+
+const CHAPTERS_PER_PAGE = 9;
 
 const StoryDetailPage = () => {
   const { id } = useParams();
   const navigate = useNavigate();
   const { user } = useAuth();
+  const [searchParams, setSearchParams] = useSearchParams();
+  const chaptersSectionRef = useRef(null);
 
   const [story, setStory] = useState(null);
   const [loading, setLoading] = useState(true);
@@ -33,6 +38,25 @@ const StoryDetailPage = () => {
   const [hoverRating, setHoverRating] = useState(0);
   const [ratingSubmitting, setRatingSubmitting] = useState(false);
   const [ratingFeedback, setRatingFeedback] = useState(null);
+
+  // Chapter pagination and ordering states
+  const [chapterSortOrder, setChapterSortOrder] = useState('asc'); // 'asc' = cũ nhất trước, 'desc' = mới nhất trước
+  const [jumpChapterInput, setJumpChapterInput] = useState('');
+  const [jumpError, setJumpError] = useState('');
+  const [highlightedChapterId, setHighlightedChapterId] = useState(null);
+  const highlightTimerRef = useRef(null);
+
+  useEffect(() => {
+    return () => {
+      if (highlightTimerRef.current) {
+        clearTimeout(highlightTimerRef.current);
+      }
+    };
+  }, []);
+
+  // Read current page from URL query
+  const pageParam = parseInt(searchParams.get('page') || '1', 10);
+  const currentPage = isNaN(pageParam) || pageParam < 1 ? 1 : pageParam;
 
   useEffect(() => {
     const fetchStoryDetail = async () => {
@@ -179,6 +203,118 @@ const StoryDetailPage = () => {
     }
   };
 
+  // Sorted chapters list based on chapterSortOrder
+  const sortedChapters = useMemo(() => {
+    if (!story?.chapters || story.chapters.length === 0) return [];
+    const list = [...story.chapters];
+    return list.sort((a, b) => {
+      const numA = Number(a.chapter_number) || 0;
+      const numB = Number(b.chapter_number) || 0;
+      return chapterSortOrder === 'asc' ? numA - numB : numB - numA;
+    });
+  }, [story?.chapters, chapterSortOrder]);
+
+  // Valid min and max chapter numbers for placeholder & validation
+  const chapterNumbers = useMemo(() => {
+    if (!story?.chapters || story.chapters.length === 0) return [];
+    return story.chapters
+      .map((c) => Number(c.chapter_number))
+      .filter((n) => !isNaN(n))
+      .sort((a, b) => a - b);
+  }, [story?.chapters]);
+
+  const minChapter = chapterNumbers.length > 0 ? chapterNumbers[0] : 1;
+  const maxChapter = chapterNumbers.length > 0 ? chapterNumbers[chapterNumbers.length - 1] : 1;
+
+  // Total pages calculation and safe clamped page
+  const totalChapterPages = Math.ceil(sortedChapters.length / CHAPTERS_PER_PAGE) || 1;
+  const safeChapterPage = Math.min(Math.max(1, currentPage), totalChapterPages);
+
+  // Sliced chapters for current page
+  const currentChapters = useMemo(() => {
+    const start = (safeChapterPage - 1) * CHAPTERS_PER_PAGE;
+    return sortedChapters.slice(start, start + CHAPTERS_PER_PAGE);
+  }, [sortedChapters, safeChapterPage]);
+
+  // Handle page change and smooth scroll
+  const handleChapterPageChange = (newPage) => {
+    setSearchParams((prev) => {
+      const next = new URLSearchParams(prev);
+      if (newPage > 1) {
+        next.set('page', newPage.toString());
+      } else {
+        next.delete('page');
+      }
+      return next;
+    });
+    setJumpError('');
+    if (chaptersSectionRef.current) {
+      chaptersSectionRef.current.scrollIntoView({ behavior: 'smooth', block: 'start' });
+    }
+  };
+
+  // Toggle sort order
+  const handleToggleSortOrder = () => {
+    setChapterSortOrder((prev) => (prev === 'asc' ? 'desc' : 'asc'));
+    handleChapterPageChange(1);
+  };
+
+  // Jump to chapter by exact chapter_number
+  const handleJumpToChapter = (e) => {
+    if (e) e.preventDefault();
+    setJumpError('');
+
+    const trimmed = jumpChapterInput.trim();
+    if (!trimmed) {
+      setJumpError(`Vui lòng nhập số chương (từ ${minChapter} đến ${maxChapter}).`);
+      return;
+    }
+
+    const num = Number(trimmed);
+    if (isNaN(num)) {
+      setJumpError(`Số chương không hợp lệ. Truyện này chỉ có chương ${minChapter} đến ${maxChapter}.`);
+      return;
+    }
+
+    // Search by chapter_number
+    const targetIndex = sortedChapters.findIndex((ch) => Number(ch.chapter_number) === num);
+    if (targetIndex === -1) {
+      setJumpError(`Truyện này chỉ có chương ${minChapter} đến ${maxChapter}.`);
+      return;
+    }
+
+    const targetChapter = sortedChapters[targetIndex];
+    const targetPage = Math.floor(targetIndex / CHAPTERS_PER_PAGE) + 1;
+
+    // Switch to target page
+    handleChapterPageChange(targetPage);
+
+    // Set highlight for 2 seconds
+    setHighlightedChapterId(targetChapter.id);
+
+    if (highlightTimerRef.current) {
+      clearTimeout(highlightTimerRef.current);
+    }
+
+    setTimeout(() => {
+      const el = document.getElementById(`chapter-card-${targetChapter.id}`);
+      if (el) {
+        el.scrollIntoView({ behavior: 'smooth', block: 'center' });
+      }
+    }, 120);
+
+    highlightTimerRef.current = setTimeout(() => {
+      setHighlightedChapterId(null);
+    }, 2000);
+
+    setJumpChapterInput('');
+  };
+
+  const firstChapter = useMemo(() => {
+    if (!story?.chapters || story.chapters.length === 0) return null;
+    return [...story.chapters].sort((a, b) => (Number(a.chapter_number) || 0) - (Number(b.chapter_number) || 0))[0];
+  }, [story?.chapters]);
+
   if (loading) {
     return (
       <div className="min-h-screen bg-[#0F0F14] marvel-ambient-bg flex items-center justify-center">
@@ -201,8 +337,6 @@ const StoryDetailPage = () => {
       </div>
     );
   }
-
-  const firstChapter = story.chapters && story.chapters.length > 0 ? story.chapters[0] : null;
 
   return (
     <div className="min-h-screen bg-[#0F0F14] marvel-ambient-bg text-white pb-20">
@@ -467,7 +601,7 @@ const StoryDetailPage = () => {
       </div>
 
       {/* Chapters Section */}
-      <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 mt-12">
+      <div ref={chaptersSectionRef} className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 mt-12">
         <div className="flex flex-col sm:flex-row sm:items-center justify-between mb-4 gap-2">
           <div className="flex items-center gap-3">
             <BookOpen className="w-6 h-6 text-[#ED1D24]" />
@@ -486,73 +620,146 @@ const StoryDetailPage = () => {
             </span>
           </div>
         </div>
-        <div className="marvel-divider mb-8" />
+        <div className="marvel-divider mb-6" />
+
+        {/* Chapter Toolbar: Sort Order & Jump to Chapter */}
+        {story.chapters && story.chapters.length > 0 && (
+          <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 mb-6 bg-[#1A1A22]/90 backdrop-blur-md p-3.5 rounded-2xl border border-[#2A2A38] shadow-sm">
+            {/* Sort Toggle Button */}
+            <button
+              type="button"
+              onClick={handleToggleSortOrder}
+              className="inline-flex items-center gap-2 px-3.5 py-2 bg-[#0F0F14] hover:bg-[#23232E] text-xs font-medium text-gray-200 border border-[#2A2A38] hover:border-[#ED1D24] rounded-xl transition-all font-outfit"
+              title={chapterSortOrder === 'asc' ? 'Đang xếp: Cũ nhất trước. Bấm để đổi sang Mới nhất trước.' : 'Đang xếp: Mới nhất trước. Bấm để đổi sang Cũ nhất trước.'}
+            >
+              <ArrowUpDown className="w-3.5 h-3.5 text-[#ED1D24]" />
+              <span>Thứ tự: <strong className="text-white">{chapterSortOrder === 'asc' ? 'Chương cũ nhất trước' : 'Chương mới nhất trước'}</strong></span>
+            </button>
+
+            {/* Jump to Chapter Form */}
+            <form onSubmit={handleJumpToChapter} className="flex flex-wrap items-center gap-2">
+              <label htmlFor="jump-chapter-input" className="text-xs text-gray-300 font-medium font-outfit whitespace-nowrap">
+                Nhảy tới chương số:
+              </label>
+              <div className="flex items-center gap-1.5">
+                <input
+                  id="jump-chapter-input"
+                  type="number"
+                  value={jumpChapterInput}
+                  onChange={(e) => {
+                    setJumpChapterInput(e.target.value);
+                    if (jumpError) setJumpError('');
+                  }}
+                  onKeyDown={(e) => {
+                    if (e.key === 'Enter') {
+                      handleJumpToChapter(e);
+                    }
+                  }}
+                  placeholder={`${minChapter} - ${maxChapter}`}
+                  className="w-24 sm:w-28 bg-[#0F0F14] text-xs text-gray-200 px-3 py-2 rounded-xl border border-[#2A2A38] focus:outline-none focus:border-[#ED1D24] font-mono text-center"
+                />
+                <button
+                  type="submit"
+                  className="px-4 py-2 bg-[#ED1D24] hover:bg-[#ff3333] active:scale-95 text-white text-xs font-bold rounded-xl transition-all font-outfit shadow-sm cursor-pointer flex items-center gap-1"
+                >
+                  Đi
+                </button>
+              </div>
+            </form>
+          </div>
+        )}
+
+        {/* Jump error notification if any */}
+        {jumpError && (
+          <div className="mb-4 text-xs text-red-400 bg-red-950/40 border border-red-800/50 px-3.5 py-2.5 rounded-xl flex items-center gap-2 font-outfit shadow-sm">
+            <AlertCircle className="w-4 h-4 flex-shrink-0 text-red-400" />
+            <span>{jumpError}</span>
+          </div>
+        )}
 
         {story.chapters && story.chapters.length > 0 ? (
-          <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-3">
-            {story.chapters.map((ch) => {
-              const chapterAccent = ch.accent_color || '#ED1D24';
-              const chapterCover = ch.cover_image || '/placeholder-cover.svg';
-              return (
-                <Link
-                  key={ch.id}
-                  to={`/stories/${story.id}/chapters/${ch.id}`}
-                  className="cursor-pointer group flex items-center justify-between p-3.5 bg-[#1A1A22] rounded-xl border border-[#2A2A38] hover:border-gray-500 hover:bg-[#23232E] transition-all relative overflow-hidden shadow-sm"
-                >
-                  {/* Dải màu nhỏ accent_color của chapter làm điểm nhấn viền trái */}
-                  <div
-                    className="absolute left-0 top-0 bottom-0 w-1.5 transition-all group-hover:w-2.5"
-                    style={{ backgroundColor: chapterAccent }}
-                  />
+          <>
+            <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-3">
+              {currentChapters.map((ch) => {
+                const chapterAccent = ch.accent_color || '#ED1D24';
+                const chapterCover = ch.cover_image || '/placeholder-cover.svg';
+                return (
+                  <Link
+                    key={ch.id}
+                    id={`chapter-card-${ch.id}`}
+                    to={`/stories/${story.id}/chapters/${ch.id}`}
+                    className={`cursor-pointer group flex items-center justify-between p-3.5 rounded-xl border transition-all duration-300 relative overflow-hidden shadow-sm ${
+                      highlightedChapterId === ch.id
+                        ? 'bg-[#2A2A38] border-[#ED1D24] ring-2 ring-[#ED1D24] shadow-xl shadow-[#ED1D24]/40 scale-[1.02]'
+                        : 'bg-[#1A1A22] border-[#2A2A38] hover:border-gray-500 hover:bg-[#23232E]'
+                    }`}
+                  >
+                    {/* Dải màu nhỏ accent_color của chapter làm điểm nhấn viền trái */}
+                    <div
+                      className="absolute left-0 top-0 bottom-0 w-1.5 transition-all group-hover:w-2.5"
+                      style={{ backgroundColor: chapterAccent }}
+                    />
 
-                  <div className="flex items-center space-x-3.5 overflow-hidden pl-2">
-                    {/* Thumbnail nhỏ cover_image qua ProxiedImage */}
-                    <div className="w-12 h-16 rounded-lg overflow-hidden bg-[#0F0F14] border border-[#2A2A38] flex-shrink-0 relative shadow-sm">
-                      <ProxiedImage
-                        src={chapterCover}
-                        alt={ch.title}
-                        className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-300"
-                        fallbackSrc="/placeholder-cover.svg"
-                      />
-                      <div className="absolute top-1 left-1 px-1 bg-black/80 rounded text-[9px] font-mono text-white font-bold">
-                        #{ch.chapter_number}
+                    <div className="flex items-center space-x-3.5 overflow-hidden pl-2">
+                      {/* Thumbnail nhỏ cover_image qua ProxiedImage */}
+                      <div className="w-12 h-16 rounded-lg overflow-hidden bg-[#0F0F14] border border-[#2A2A38] flex-shrink-0 relative shadow-sm">
+                        <ProxiedImage
+                          src={chapterCover}
+                          alt={ch.title}
+                          className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-300"
+                          fallbackSrc="/placeholder-cover.svg"
+                        />
+                        <div className="absolute top-1 left-1 px-1 bg-black/80 rounded text-[9px] font-mono text-white font-bold">
+                          #{ch.chapter_number}
+                        </div>
+                      </div>
+
+                      <div className="truncate">
+                        <h4 className="text-sm font-semibold text-white group-hover:text-[#ED1D24] truncate transition-colors">
+                          {ch.title || `Chương ${ch.chapter_number}`}
+                        </h4>
+                        <p className="text-[11px] text-gray-500 font-mono mt-0.5">
+                          {ch.release_date || 'Phát hành chính thức'}
+                        </p>
                       </div>
                     </div>
 
-                    <div className="truncate">
-                      <h4 className="text-sm font-semibold text-white group-hover:text-[#ED1D24] truncate transition-colors">
-                        {ch.title || `Chương ${ch.chapter_number}`}
-                      </h4>
-                      <p className="text-[11px] text-gray-500 font-mono mt-0.5">
-                        {ch.release_date || 'Phát hành chính thức'}
-                      </p>
+                    <div className="flex items-center space-x-2 flex-shrink-0 ml-2">
+                      {ch.is_preview ? (
+                        <span className="text-[10px] bg-emerald-500/20 text-emerald-400 border border-emerald-500/30 px-2 py-0.5 rounded font-bold uppercase">
+                          Đọc thử
+                        </span>
+                      ) : isPurchased ? (
+                        <span className="text-[10px] bg-emerald-500/20 text-emerald-400 border border-emerald-500/30 px-2 py-0.5 rounded font-bold uppercase flex items-center gap-1">
+                          <CheckCircle2 className="w-3 h-3" /> Đã Mua
+                        </span>
+                      ) : story.access_policy === 'free' ? (
+                        <span className="text-[10px] bg-emerald-500/20 text-emerald-400 px-2 py-0.5 rounded font-bold uppercase">
+                          Free
+                        </span>
+                      ) : (
+                        <span className="text-[10px] bg-amber-500/20 text-amber-400 px-2 py-0.5 rounded font-bold uppercase flex items-center gap-1">
+                          <Lock className="w-3 h-3" /> VIP
+                        </span>
+                      )}
+                      <ArrowRight className="w-4 h-4 text-gray-500 group-hover:text-white group-hover:translate-x-1 transition-all" />
                     </div>
-                  </div>
+                  </Link>
+                );
+              })}
+            </div>
 
-                  <div className="flex items-center space-x-2 flex-shrink-0 ml-2">
-                    {ch.is_preview ? (
-                      <span className="text-[10px] bg-emerald-500/20 text-emerald-400 border border-emerald-500/30 px-2 py-0.5 rounded font-bold uppercase">
-                        Đọc thử
-                      </span>
-                    ) : isPurchased ? (
-                      <span className="text-[10px] bg-emerald-500/20 text-emerald-400 border border-emerald-500/30 px-2 py-0.5 rounded font-bold uppercase flex items-center gap-1">
-                        <CheckCircle2 className="w-3 h-3" /> Đã Mua
-                      </span>
-                    ) : story.access_policy === 'free' ? (
-                      <span className="text-[10px] bg-emerald-500/20 text-emerald-400 px-2 py-0.5 rounded font-bold uppercase">
-                        Free
-                      </span>
-                    ) : (
-                      <span className="text-[10px] bg-amber-500/20 text-amber-400 px-2 py-0.5 rounded font-bold uppercase flex items-center gap-1">
-                        <Lock className="w-3 h-3" /> VIP
-                      </span>
-                    )}
-                    <ArrowRight className="w-4 h-4 text-gray-500 group-hover:text-white group-hover:translate-x-1 transition-all" />
-                  </div>
-                </Link>
-              );
-            })}
-          </div>
+            {/* Pagination */}
+            {totalChapterPages > 1 && (
+              <div className="mt-8">
+                <Pagination
+                  currentPage={safeChapterPage}
+                  totalPages={totalChapterPages}
+                  onPageChange={handleChapterPageChange}
+                />
+              </div>
+            )}
+          </>
         ) : (
           <div className="text-center py-12 bg-[#1A1A22] rounded-xl border border-[#2A2A38] text-gray-400">
             Chưa có chương nào được nạp cho truyện này.

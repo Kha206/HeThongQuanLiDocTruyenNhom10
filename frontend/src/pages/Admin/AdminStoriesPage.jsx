@@ -4,7 +4,8 @@ import api from '../../services/api';
 import {
   Plus, Edit, Trash2, ShieldAlert,
   CheckCircle, RefreshCw, X, Layers,
-  BookOpen, Eye, Check, CreditCard, Sparkles, Filter
+  BookOpen, Eye, Check, CreditCard, Sparkles, Filter,
+  CheckCircle2, AlertCircle
 } from 'lucide-react';
 import ProxiedImage from '../../components/ProxiedImage';
 
@@ -210,8 +211,49 @@ const AdminStoriesPage = () => {
     setIsModalOpen(true);
   };
 
+  const validateCoverImageUrl = (url) => {
+    if (!url || typeof url !== 'string' || !url.trim()) {
+      return 'Link ảnh bìa không được để trống.';
+    }
+    const clean = url.trim();
+
+    // Chặn link trang web ComicVine chứa /4005-, /4050-, /4000-
+    if (
+      clean.includes('comicvine.gamespot.com') &&
+      (clean.includes('/4005-') || clean.includes('/4050-') || clean.includes('/4000-') || /40(05|50|00)-\d+/.test(clean))
+    ) {
+      return "Đây là link trang web ComicVine, không phải link file ảnh. Vui lòng chuột phải vào ảnh bìa trên ComicVine > chọn 'Sao chép địa chỉ hình ảnh' (link ảnh có dạng https://comicvine.gamespot.com/a/uploads/... đuôi .jpg, .png, .webp).";
+    }
+
+    // Cho phép data URL hoặc file upload nội bộ
+    if (clean.startsWith('data:image/') || clean.startsWith('/uploads/')) {
+      return null;
+    }
+
+    // Phải là http hoặc https
+    if (!clean.startsWith('http://') && !clean.startsWith('https://')) {
+      return 'Link ảnh bìa phải bắt đầu bằng http:// hoặc https://';
+    }
+
+    // Phải có đuôi file ảnh hợp lệ (.jpg, .jpeg, .png, .webp, .gif, .svg)
+    const pathPart = clean.split('?')[0].toLowerCase();
+    const validExtensions = ['.jpg', '.jpeg', '.png', '.webp', '.gif', '.svg'];
+    const hasValidExt = validExtensions.some((ext) => pathPart.endsWith(ext));
+
+    if (!hasValidExt) {
+      return 'Link ảnh trực tiếp phải có đuôi file hợp lệ (.jpg, .jpeg, .png, .webp).';
+    }
+
+    return null;
+  };
+
   const handleFormSubmit = async (e) => {
     e.preventDefault();
+    const coverErr = validateCoverImageUrl(formData.cover_image);
+    if (coverErr) {
+      showError(coverErr);
+      return;
+    }
     try {
       if (editingStory) {
         await api.put(`/admin/stories/${editingStory.id}`, formData);
@@ -708,13 +750,52 @@ const AdminStoriesPage = () => {
 
               <div>
                 <label className="block text-xs font-semibold text-gray-300 mb-1">Link Ảnh Bìa (Cover Image URL)</label>
-                <input
-                  type="text"
-                  value={formData.cover_image}
-                  onChange={(e) => setFormData({ ...formData, cover_image: e.target.value })}
-                  placeholder="https://comicvine.gamespot.com/a/uploads/..."
-                  className="w-full bg-[#0F0F14] text-sm text-gray-200 px-3.5 py-2 rounded-xl border border-[#2A2A38] focus:border-[#ED1D24]"
-                />
+                {(() => {
+                  const coverErr = formData.cover_image ? validateCoverImageUrl(formData.cover_image) : null;
+                  return (
+                    <>
+                      <input
+                        type="text"
+                        value={formData.cover_image}
+                        onChange={(e) => setFormData({ ...formData, cover_image: e.target.value })}
+                        placeholder="https://comicvine.gamespot.com/a/uploads/..."
+                        className={`w-full bg-[#0F0F14] text-sm text-gray-200 px-3.5 py-2 rounded-xl border focus:outline-none transition-colors ${
+                          coverErr ? 'border-red-500 focus:border-red-500' : 'border-[#2A2A38] focus:border-[#ED1D24]'
+                        }`}
+                      />
+
+                      {/* Thông báo lỗi nếu link không hợp lệ */}
+                      {coverErr && (
+                        <p className="text-xs text-red-400 mt-1.5 flex items-start gap-1 font-outfit leading-relaxed">
+                          <AlertCircle className="w-4 h-4 flex-shrink-0 mt-0.5 text-red-400" />
+                          <span>{coverErr}</span>
+                        </p>
+                      )}
+
+                      {/* Khung xem trước ảnh bìa */}
+                      {!coverErr && formData.cover_image && (
+                        <div className="mt-2.5 flex items-start gap-3 p-3 bg-[#0F0F14] rounded-xl border border-[#2A2A38]">
+                          <div className="w-14 h-20 rounded-lg overflow-hidden bg-[#1A1A22] border border-[#2A2A38] flex-shrink-0 relative shadow-sm">
+                            <ProxiedImage
+                              src={formData.cover_image}
+                              alt="Xem trước ảnh bìa"
+                              className="w-full h-full object-cover"
+                              fallbackSrc="/placeholder-cover.svg"
+                            />
+                          </div>
+                          <div className="text-xs text-gray-300 flex-1 min-w-0">
+                            <p className="font-bold text-white flex items-center gap-1.5 text-xs">
+                              <CheckCircle2 className="w-3.5 h-3.5 text-emerald-400 flex-shrink-0" />
+                              <span>Khung xem trước ảnh bìa</span>
+                            </p>
+                            <p className="text-[11px] text-gray-400 mt-1 line-clamp-2 font-mono break-all">{formData.cover_image}</p>
+                            <p className="text-[10px] text-gray-500 mt-1">Ảnh được nạp qua proxy bảo mật của hệ thống.</p>
+                          </div>
+                        </div>
+                      )}
+                    </>
+                  );
+                })()}
               </div>
 
               <div className="grid grid-cols-1 sm:grid-cols-4 gap-4">

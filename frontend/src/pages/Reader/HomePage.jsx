@@ -2,8 +2,11 @@ import React, { useState, useEffect } from 'react';
 import { useSearchParams, useLocation } from 'react-router-dom';
 import HeroScene from '../../components/HeroScene';
 import ComicCard from '../../components/ComicCard';
+import Pagination from '../../components/Pagination';
 import api from '../../services/api';
-import { Search, Filter, BookOpen, AlertCircle, RefreshCw, Sparkles, CheckCircle2, RotateCcw } from 'lucide-react';
+import { Search, Filter, BookOpen, AlertCircle, RefreshCw, RotateCcw } from 'lucide-react';
+
+const STORIES_PER_PAGE = 8;
 
 const HomePage = () => {
   const [searchParams, setSearchParams] = useSearchParams();
@@ -14,6 +17,7 @@ const HomePage = () => {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
   const [totalStories, setTotalStories] = useState(0);
+  const [totalPages, setTotalPages] = useState(1);
 
   // Auto-scroll logic depending on pathname and hash
   useEffect(() => {
@@ -39,6 +43,10 @@ const HomePage = () => {
       window.scrollTo({ top: 0, behavior: 'smooth' });
     }
   }, [location.pathname, location.hash]);
+
+  // Read current page from URL
+  const pageParam = parseInt(searchParams.get('page') || '1', 10);
+  const currentPage = isNaN(pageParam) || pageParam < 1 ? 1 : pageParam;
 
   // Filters State
   const [selectedGenre, setSelectedGenre] = useState('');
@@ -87,13 +95,17 @@ const HomePage = () => {
           genre: selectedGenre || undefined,
           status: selectedStatus !== 'all' ? selectedStatus : undefined,
           access_policy: selectedPolicy !== 'all' ? selectedPolicy : undefined,
-          sort: sortOption
+          sort: sortOption,
+          page: currentPage,
+          limit: STORIES_PER_PAGE
         };
 
         const res = await api.get('/stories', { params });
         if (res.success) {
           setStories(res.stories || []);
-          setTotalStories(res.total || (res.stories || []).length);
+          const total = res.total !== undefined ? res.total : (res.stories || []).length;
+          setTotalStories(total);
+          setTotalPages(res.totalPages || Math.ceil(total / STORIES_PER_PAGE) || 1);
           setError(null);
         }
       } catch (err) {
@@ -109,11 +121,83 @@ const HomePage = () => {
     }, 200);
 
     return () => clearTimeout(timer);
-  }, [searchQuery, selectedGenre, selectedStatus, selectedPolicy, sortOption]);
+  }, [currentPage, searchQuery, selectedGenre, selectedStatus, selectedPolicy, sortOption]);
+
+  // Page change handler: preserves existing filters in searchParams and scrolls to catalog
+  const handlePageChange = (newPage) => {
+    setSearchParams((prev) => {
+      const next = new URLSearchParams(prev);
+      if (newPage > 1) {
+        next.set('page', newPage.toString());
+      } else {
+        next.delete('page');
+      }
+      return next;
+    });
+    const el = document.getElementById('story-catalog');
+    if (el) {
+      el.scrollIntoView({ behavior: 'smooth' });
+    }
+  };
+
+  // Reset page helper when modifying any filter
+  const resetPageInParams = () => {
+    if (searchParams.has('page')) {
+      setSearchParams((prev) => {
+        const next = new URLSearchParams(prev);
+        next.delete('page');
+        return next;
+      });
+    }
+  };
+
+  const handleSearchChange = (value) => {
+    setSearchQuery(value);
+    resetPageInParams();
+  };
 
   const handleSearchSubmit = (e) => {
     e.preventDefault();
-    setSearchParams(searchQuery ? { search: searchQuery } : {});
+    setSearchParams((prev) => {
+      const next = new URLSearchParams(prev);
+      if (searchQuery) {
+        next.set('search', searchQuery);
+      } else {
+        next.delete('search');
+      }
+      next.delete('page');
+      return next;
+    });
+  };
+
+  const handleClearSearch = () => {
+    setSearchQuery('');
+    setSearchParams((prev) => {
+      const next = new URLSearchParams(prev);
+      next.delete('search');
+      next.delete('page');
+      return next;
+    });
+  };
+
+  const handleGenreChange = (genreSlug) => {
+    setSelectedGenre(genreSlug);
+    resetPageInParams();
+  };
+
+  const handleStatusChange = (status) => {
+    setSelectedStatus(status);
+    resetPageInParams();
+  };
+
+  const handlePolicyChange = (policy) => {
+    setSelectedPolicy(policy);
+    resetPageInParams();
+  };
+
+  const handleSortChange = (sort) => {
+    setSortOption(sort);
+    resetPageInParams();
   };
 
   const handleResetFilters = () => {
@@ -155,7 +239,7 @@ const HomePage = () => {
             <span className="text-xs text-gray-400 font-outfit whitespace-nowrap">Sắp xếp:</span>
             <select
               value={sortOption}
-              onChange={(e) => setSortOption(e.target.value)}
+              onChange={(e) => handleSortChange(e.target.value)}
               className="bg-[#1A1A22] text-sm text-gray-200 border border-[#2A2A38] rounded-xl px-3.5 py-2 focus:outline-none focus:border-[#ED1D24] font-outfit shadow-sm"
             >
               <option value="views">Lượt xem nhiều nhất</option>
@@ -179,7 +263,7 @@ const HomePage = () => {
               <input
                 type="text"
                 value={searchQuery}
-                onChange={(e) => setSearchQuery(e.target.value)}
+                onChange={(e) => handleSearchChange(e.target.value)}
                 placeholder="Tìm siêu anh hùng (Spider-Man, Avengers, Iron Man...)"
                 className="w-full bg-[#0F0F14] text-sm text-gray-200 pl-10 pr-12 py-2.5 rounded-xl border border-[#2A2A38] focus:outline-none focus:border-[#ED1D24]"
               />
@@ -187,7 +271,7 @@ const HomePage = () => {
               {searchQuery && (
                 <button
                   type="button"
-                  onClick={() => setSearchQuery('')}
+                  onClick={handleClearSearch}
                   className="absolute right-3 top-3 text-xs text-gray-500 hover:text-white"
                 >
                   Xóa
@@ -199,7 +283,7 @@ const HomePage = () => {
             <div className="lg:col-span-4 flex items-center bg-[#0F0F14] p-1 rounded-xl border border-[#2A2A38]">
               <button
                 type="button"
-                onClick={() => setSelectedStatus('all')}
+                onClick={() => handleStatusChange('all')}
                 className={`flex-1 text-xs py-1.5 rounded-lg font-medium transition-all ${
                   selectedStatus === 'all' ? 'bg-[#ED1D24] text-white font-bold' : 'text-gray-400 hover:text-white'
                 }`}
@@ -208,7 +292,7 @@ const HomePage = () => {
               </button>
               <button
                 type="button"
-                onClick={() => setSelectedStatus('ongoing')}
+                onClick={() => handleStatusChange('ongoing')}
                 className={`flex-1 text-xs py-1.5 rounded-lg font-medium transition-all ${
                   selectedStatus === 'ongoing' ? 'bg-cyan-600 text-white font-bold' : 'text-gray-400 hover:text-white'
                 }`}
@@ -217,7 +301,7 @@ const HomePage = () => {
               </button>
               <button
                 type="button"
-                onClick={() => setSelectedStatus('completed')}
+                onClick={() => handleStatusChange('completed')}
                 className={`flex-1 text-xs py-1.5 rounded-lg font-medium transition-all ${
                   selectedStatus === 'completed' ? 'bg-purple-600 text-white font-bold' : 'text-gray-400 hover:text-white'
                 }`}
@@ -230,7 +314,7 @@ const HomePage = () => {
             <div className="lg:col-span-3">
               <select
                 value={selectedPolicy}
-                onChange={(e) => setSelectedPolicy(e.target.value)}
+                onChange={(e) => handlePolicyChange(e.target.value)}
                 className="w-full bg-[#0F0F14] text-sm text-gray-200 border border-[#2A2A38] rounded-xl px-3.5 py-2.5 focus:outline-none focus:border-[#ED1D24]"
               >
                 <option value="all">Tất cả chính sách</option>
@@ -247,7 +331,7 @@ const HomePage = () => {
               <Filter className="w-3.5 h-3.5 text-[#ED1D24]" /> Thể loại:
             </span>
             <button
-              onClick={() => setSelectedGenre('')}
+              onClick={() => handleGenreChange('')}
               className={`px-3 py-1.5 rounded-lg whitespace-nowrap transition-all ${
                 selectedGenre === ''
                   ? 'bg-[#ED1D24] text-white font-bold shadow-md shadow-[#ED1D24]/30'
@@ -259,7 +343,7 @@ const HomePage = () => {
             {genres.map((g) => (
               <button
                 key={g.id}
-                onClick={() => setSelectedGenre(g.slug === selectedGenre ? '' : g.slug)}
+                onClick={() => handleGenreChange(g.slug === selectedGenre ? '' : g.slug)}
                 className={`px-3 py-1.5 rounded-lg whitespace-nowrap transition-all ${
                   selectedGenre === g.slug
                     ? 'bg-[#ED1D24] text-white font-bold shadow-md shadow-[#ED1D24]/30'
@@ -319,11 +403,24 @@ const HomePage = () => {
             </button>
           </div>
         ) : (
-          <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-4 gap-6">
-            {stories.map((story) => (
-              <ComicCard key={story.id} story={story} />
-            ))}
-          </div>
+          <>
+            <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-4 gap-6">
+              {stories.map((story) => (
+                <ComicCard key={story.id} story={story} />
+              ))}
+            </div>
+
+            {/* Pagination */}
+            {totalPages > 1 && (
+              <div className="mt-12">
+                <Pagination
+                  currentPage={currentPage}
+                  totalPages={totalPages}
+                  onPageChange={handlePageChange}
+                />
+              </div>
+            )}
+          </>
         )}
 
       </section>
