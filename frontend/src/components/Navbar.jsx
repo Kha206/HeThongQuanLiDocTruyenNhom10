@@ -2,11 +2,12 @@ import React, { useState, useEffect } from 'react';
 import { Link, useNavigate, useLocation } from 'react-router-dom';
 import { useAuth } from '../context/AuthContext';
 import {
-  Search, LogOut, ShieldAlert, Menu, X, Sparkles,
+  LogOut, ShieldAlert, Menu, X, Sparkles,
   CreditCard, Crown, BookOpen, Bell, CheckCheck,
   Clock, MessageSquare, History, User, BarChart3, Users
 } from 'lucide-react';
 import Avatar from './Avatar';
+import SearchHistoryInput from './SearchHistoryInput';
 import api from '../services/api';
 import socket, { joinUserRoom, requestPushPermission, showWebNotification } from '../services/socket';
 
@@ -101,10 +102,11 @@ const Navbar = () => {
     requestPushPermission();
   };
 
-  const handleSearch = (e) => {
-    e.preventDefault();
-    if (searchQuery.trim()) {
-      navigate(`/?search=${encodeURIComponent(searchQuery.trim())}#story-catalog`);
+  const handleSearch = (rawTerm) => {
+    const trimmed = typeof rawTerm === 'string' ? rawTerm.trim() : '';
+    if (trimmed) {
+      navigate(`/?search=${encodeURIComponent(trimmed)}#story-catalog`);
+      setMobileMenuOpen(false);
     }
   };
 
@@ -186,16 +188,16 @@ const Navbar = () => {
         </div>
 
         {/* Search Bar */}
-        <form onSubmit={handleSearch} className="hidden lg:flex items-center relative max-w-xs w-full mx-4">
-          <input
-            type="text"
-            placeholder="Tìm kiếm siêu anh hùng, arc..."
-            value={searchQuery}
-            onChange={(e) => setSearchQuery(e.target.value)}
-            className="w-full bg-[#1A1A22] text-sm text-gray-200 placeholder-gray-500 pl-9 pr-4 py-1.5 rounded-full border border-[#2A2A38] focus:outline-none focus:border-[#ED1D24] transition-colors"
-          />
-          <Search className="w-4 h-4 text-gray-400 absolute left-3 pointer-events-none" />
-        </form>
+        <SearchHistoryInput
+          value={searchQuery}
+          onChange={setSearchQuery}
+          onSubmitSearch={handleSearch}
+          placeholder="Tìm kiếm siêu anh hùng, arc..."
+          ariaLabel="Tìm kiếm truyện"
+          formClassName="hidden lg:flex items-center relative max-w-xs w-full mx-4"
+          inputClassName="w-full bg-[#1A1A22] text-sm text-gray-200 placeholder-gray-500 pl-9 pr-4 py-1.5 rounded-full border border-[#2A2A38] focus:outline-none focus:border-[#ED1D24] transition-colors"
+          iconClassName="w-4 h-4 text-gray-400 absolute left-3 top-1/2 -translate-y-1/2 pointer-events-none"
+        />
 
         {/* Right Section: Notification, Auth & Profile */}
         <div className="flex items-center space-x-3">
@@ -450,16 +452,16 @@ const Navbar = () => {
       {/* Mobile Menu Dropdown */}
       {mobileMenuOpen && (
         <div className="md:hidden bg-[#1A1A22] border-b border-[#2A2A38] px-4 pt-2 pb-4 space-y-3">
-          <form onSubmit={handleSearch} className="relative w-full">
-            <input
-              type="text"
-              placeholder="Tìm kiếm..."
-              value={searchQuery}
-              onChange={(e) => setSearchQuery(e.target.value)}
-              className="w-full bg-[#0F0F14] text-sm text-gray-200 pl-9 pr-4 py-2 rounded-lg border border-[#2A2A38]"
-            />
-            <Search className="w-4 h-4 text-gray-400 absolute left-3 top-3" />
-          </form>
+          <SearchHistoryInput
+            value={searchQuery}
+            onChange={setSearchQuery}
+            onSubmitSearch={handleSearch}
+            placeholder="Tìm kiếm..."
+            ariaLabel="Tìm kiếm truyện trên di động"
+            formClassName="relative w-full z-40"
+            inputClassName="w-full bg-[#0F0F14] text-sm text-gray-200 placeholder-gray-500 pl-9 pr-4 py-2 rounded-lg border border-[#2A2A38] focus:outline-none focus:border-[#ED1D24] transition-colors"
+            iconClassName="w-4 h-4 text-gray-400 absolute left-3 top-1/2 -translate-y-1/2 pointer-events-none"
+          />
 
           {isAuthenticated && (
             <div className="flex items-center gap-3 p-2.5 bg-[#0F0F14] rounded-xl border border-[#2A2A38]">

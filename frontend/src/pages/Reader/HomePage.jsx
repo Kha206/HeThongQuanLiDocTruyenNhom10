@@ -1,10 +1,11 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import { useSearchParams, useLocation } from 'react-router-dom';
 import HeroScene from '../../components/HeroScene';
 import ComicCard from '../../components/ComicCard';
 import Pagination from '../../components/Pagination';
+import SearchHistoryInput from '../../components/SearchHistoryInput';
 import api from '../../services/api';
-import { Search, Filter, BookOpen, AlertCircle, RefreshCw, RotateCcw } from 'lucide-react';
+import { Filter, BookOpen, AlertCircle, RefreshCw, RotateCcw } from 'lucide-react';
 
 const STORIES_PER_PAGE = 8;
 
@@ -54,6 +55,16 @@ const HomePage = () => {
   const [selectedPolicy, setSelectedPolicy] = useState('all');
   const [searchQuery, setSearchQuery] = useState(searchParams.get('search') || '');
   const [sortOption, setSortOption] = useState('views');
+  const prevUrlSearchRef = useRef(searchParams.get('search') || '');
+
+  // Sync URL ?search=... updates (e.g., triggered from Navbar) without auto-saving initial URL queries
+  useEffect(() => {
+    const urlSearch = searchParams.get('search') || '';
+    if (urlSearch !== prevUrlSearchRef.current) {
+      prevUrlSearchRef.current = urlSearch;
+      setSearchQuery(urlSearch);
+    }
+  }, [searchParams]);
 
   // Load Hero Stories
   useEffect(() => {
@@ -156,12 +167,17 @@ const HomePage = () => {
     resetPageInParams();
   };
 
-  const handleSearchSubmit = (e) => {
-    e.preventDefault();
+  const handleSearchSubmit = (rawTerm) => {
+    const targetQuery = typeof rawTerm === 'string' ? rawTerm : searchQuery;
+    const trimmed = targetQuery.trim();
+    if (trimmed !== searchQuery) {
+      setSearchQuery(trimmed);
+    }
+    prevUrlSearchRef.current = trimmed;
     setSearchParams((prev) => {
       const next = new URLSearchParams(prev);
-      if (searchQuery) {
-        next.set('search', searchQuery);
+      if (trimmed) {
+        next.set('search', trimmed);
       } else {
         next.delete('search');
       }
@@ -172,6 +188,7 @@ const HomePage = () => {
 
   const handleClearSearch = () => {
     setSearchQuery('');
+    prevUrlSearchRef.current = '';
     setSearchParams((prev) => {
       const next = new URLSearchParams(prev);
       next.delete('search');
@@ -255,29 +272,23 @@ const HomePage = () => {
         <div className="marvel-divider mt-6 mb-8" />
 
         {/* Filter Controls Bar */}
-        <div className="bg-[#1A1A22]/90 backdrop-blur-md p-5 rounded-2xl border border-[#2A2A38] mb-8 space-y-4 shadow-xl">
+        <div className="relative z-20 bg-[#1A1A22]/90 backdrop-blur-md p-5 rounded-2xl border border-[#2A2A38] mb-8 space-y-4 shadow-xl">
           
           {/* Top row: Search input & Status + Policy Buttons */}
           <div className="grid grid-cols-1 lg:grid-cols-12 gap-4">
-            <form onSubmit={handleSearchSubmit} className="lg:col-span-5 relative">
-              <input
-                type="text"
-                value={searchQuery}
-                onChange={(e) => handleSearchChange(e.target.value)}
-                placeholder="Tìm siêu anh hùng (Spider-Man, Avengers, Iron Man...)"
-                className="w-full bg-[#0F0F14] text-sm text-gray-200 pl-10 pr-12 py-2.5 rounded-xl border border-[#2A2A38] focus:outline-none focus:border-[#ED1D24]"
-              />
-              <Search className="w-4 h-4 text-gray-400 absolute left-3.5 top-3.5 pointer-events-none" />
-              {searchQuery && (
-                <button
-                  type="button"
-                  onClick={handleClearSearch}
-                  className="absolute right-3 top-3 text-xs text-gray-500 hover:text-white"
-                >
-                  Xóa
-                </button>
-              )}
-            </form>
+            <SearchHistoryInput
+              value={searchQuery}
+              onChange={handleSearchChange}
+              onSubmitSearch={handleSearchSubmit}
+              onClear={handleClearSearch}
+              showClearButton
+              placeholder="Tìm siêu anh hùng (Spider-Man, Avengers, Iron Man...)"
+              ariaLabel="Tìm kiếm truyện theo tên hoặc siêu anh hùng"
+              formClassName="lg:col-span-5 relative z-30"
+              inputClassName="w-full bg-[#0F0F14] text-sm text-gray-200 pl-10 pr-12 py-2.5 rounded-xl border border-[#2A2A38] focus:outline-none focus:border-[#ED1D24] transition-colors"
+              iconClassName="w-4 h-4 text-gray-400 absolute left-3.5 top-3.5 pointer-events-none"
+              clearButtonClassName="absolute right-3 top-3 text-xs text-gray-500 hover:text-white transition-colors duration-150"
+            />
 
             {/* Status Tabs */}
             <div className="lg:col-span-4 flex items-center bg-[#0F0F14] p-1 rounded-xl border border-[#2A2A38]">
