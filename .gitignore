@@ -13,3 +13,10 @@ backend/scripts/verify*.js
 backend/uploads/
 
 .chrome-profile/
+
+# Setup files (hidden temporarily)
+backend/migrations/
+backend/seeders/
+docs/schema.sql
+backend/scripts/seedFromComicVine.js
+start-dev.bat
